@@ -1,10 +1,10 @@
-package net.lintfordlib.samples.screens;
+package net.lintfordlib.ld58.screens;
 
 import net.lintfordlib.assets.ResourceManager;
 import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.ColorConstants;
-import net.lintfordlib.samples.screens.menu.OptionsScreen;
-import net.lintfordlib.samples.screens.menu.SelectScreen;
+import net.lintfordlib.ld58.screens.menu.OptionsScreen;
+import net.lintfordlib.ld58.screens.menu.SelectScreen;
 import net.lintfordlib.screenmanager.MenuEntry;
 import net.lintfordlib.screenmanager.MenuScreen;
 import net.lintfordlib.screenmanager.ScreenManager;
@@ -44,6 +44,7 @@ public class MainMenu extends MenuScreen {
 		mMainMenuListBox.setDrawBackground(true, ColorConstants.getColor(.7f, .3f, .7f, .5f));
 		mMainMenuListBox.layoutWidth(LAYOUT_WIDTH.HALF);
 		mMainMenuListBox.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
+		mMainMenuListBox.setDrawBackground(false, ColorConstants.BLACK());
 
 		final var lStartGameEntry = new MenuEntry(screenManager, this, "Start");
 		lStartGameEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);

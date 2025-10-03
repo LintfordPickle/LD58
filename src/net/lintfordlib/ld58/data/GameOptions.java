@@ -1,4 +1,4 @@
-package net.lintfordlib.samples.data;
+package net.lintfordlib.ld58.data;
 
 // An example of GameOptions which could be sent between screens when starting a new game.
 public class GameOptions {

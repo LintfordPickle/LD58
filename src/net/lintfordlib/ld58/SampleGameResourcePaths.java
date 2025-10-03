@@ -1,4 +1,4 @@
-package net.lintfordlib.samples;
+package net.lintfordlib.ld58;
 
 import java.io.File;
 

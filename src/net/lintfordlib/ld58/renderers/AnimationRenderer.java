@@ -1,11 +1,11 @@
-package net.lintfordlib.samples.renderers;
+package net.lintfordlib.ld58.renderers;
 
 import net.lintfordlib.assets.ResourceManager;
 import net.lintfordlib.controllers.core.FafAnimationController;
 import net.lintfordlib.core.graphics.sprites.spritesheet.SpriteSheetDefinition;
+import net.lintfordlib.ld58.ConstantsGame;
 import net.lintfordlib.renderers.RendererManagerBase;
 import net.lintfordlib.renderers.sprites.FafAnimationRenderer;
-import net.lintfordlib.samples.ConstantsGame;
 
 public class AnimationRenderer extends FafAnimationRenderer {
 

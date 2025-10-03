@@ -1,36 +1,34 @@
-package net.lintfordlib.samples.screens.menu;
+package net.lintfordlib.ld58.screens.menu;
 
 import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.ColorConstants;
-import net.lintfordlib.samples.data.GameOptions;
-import net.lintfordlib.samples.data.SampleSceneHeader;
-import net.lintfordlib.samples.screens.game.GameScreen;
 import net.lintfordlib.screenmanager.MenuEntry;
 import net.lintfordlib.screenmanager.MenuScreen;
 import net.lintfordlib.screenmanager.ScreenManager;
 import net.lintfordlib.screenmanager.ScreenManagerConstants.FILLTYPE;
 import net.lintfordlib.screenmanager.ScreenManagerConstants.LAYOUT_ALIGNMENT;
 import net.lintfordlib.screenmanager.ScreenManagerConstants.LAYOUT_WIDTH;
-import net.lintfordlib.screenmanager.entries.MenuEnumEntry;
 import net.lintfordlib.screenmanager.layouts.ListLayout;
-import net.lintfordlib.screenmanager.screens.LoadingScreen;
+import net.lintfordlib.screenmanager.screens.AudioOptionsScreen;
+import net.lintfordlib.screenmanager.screens.KeyBindOptionsScreen;
+import net.lintfordlib.screenmanager.screens.VideoOptionsScreen;
 
-public class SelectScreen extends MenuScreen {
+public class OptionsScreen extends MenuScreen {
 
 	// ---------------------------------------------
 	// Constants
 	// ---------------------------------------------
 
-	private static final int BUTTON_PLAY = 11;
-	private static final int BUTTON_BACK = 12;
-
-	private final MenuEnumEntry mDifficulty;
+	private static final int BUTTON_AUDIO = 10;
+	private static final int BUTTON_VIDEO = 11;
+	private static final int BUTTON_KEY_BINDS = 12;
+	private static final int BUTTON_BACK = 30;
 
 	// ---------------------------------------------
 	// Constructors
 	// ---------------------------------------------
 
-	public SelectScreen(ScreenManager pScreenManager) {
+	public OptionsScreen(ScreenManager pScreenManager) {
 		super(pScreenManager, null);
 
 		final var lLayout = new ListLayout(this);
@@ -39,28 +37,29 @@ public class SelectScreen extends MenuScreen {
 		lLayout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
 
 		lLayout.showTitle(true);
-		lLayout.title("Select Parameters");
+		lLayout.title("Options");
 		lLayout.cropPaddingTop(10.f);
 		lLayout.cropPaddingBottom(10.f);
 
-		mDifficulty = new MenuEnumEntry(pScreenManager, this, "Difficulty");
-		mDifficulty.addItems("Easy", "Normal", "Hard");
-		mDifficulty.horizontalFillType(FILLTYPE.FILL_CONTAINER);
-		mDifficulty.setButtonsEnabled(true);
-		mDifficulty.showInfoButton(true);
-		mDifficulty.setToolTip("Sets the game difficulty.");
+		final var lKeyBindsEntry = new MenuEntry(screenManager, this, "Key Binds");
+		lKeyBindsEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		lKeyBindsEntry.registerClickListener(this, BUTTON_KEY_BINDS);
 
-		final var lStartGameEntry = new MenuEntry(screenManager, this, "Play");
-		lStartGameEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
-		lStartGameEntry.registerClickListener(this, BUTTON_PLAY);
+		final var lVideoEntry = new MenuEntry(screenManager, this, "Video");
+		lVideoEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		lVideoEntry.registerClickListener(this, BUTTON_VIDEO);
+
+		final var lAudioSettingsEntry = new MenuEntry(screenManager, this, "Audio");
+		lAudioSettingsEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		lAudioSettingsEntry.registerClickListener(this, BUTTON_AUDIO);
 
 		final var lBackEntry = new MenuEntry(screenManager, this, "Back");
 		lBackEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
 		lBackEntry.registerClickListener(this, BUTTON_BACK);
 
-		lLayout.addMenuEntry(mDifficulty);
-		lLayout.addMenuEntry(MenuEntry.menuSeparator());
-		lLayout.addMenuEntry(lStartGameEntry);
+		lLayout.addMenuEntry(lVideoEntry);
+		lLayout.addMenuEntry(lAudioSettingsEntry);
+//		lLayout.addMenuEntry(lKeyBindsEntry);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
 		lLayout.addMenuEntry(lBackEntry);
 
@@ -71,6 +70,7 @@ public class SelectScreen extends MenuScreen {
 		mShowBackgroundScreens = false;
 
 		mLayouts.add(lLayout);
+
 	}
 
 	// ---------------------------------------------
@@ -94,16 +94,16 @@ public class SelectScreen extends MenuScreen {
 	@Override
 	protected void handleOnClick() {
 		switch (mClickAction.consume()) {
-		case BUTTON_PLAY:
+		case BUTTON_AUDIO:
+			screenManager.addScreen(new AudioOptionsScreen(screenManager));
+			break;
 
-			final var gameOptions = new GameOptions();
+		case BUTTON_VIDEO:
+			screenManager.addScreen(new VideoOptionsScreen(screenManager));
+			break;
 
-			// Set the game options before instantiating the GameScreen.
-
-			final var lNewSceneHeader = new SampleSceneHeader("Sample Game");
-
-			final var lNewGameScreen = new GameScreen(screenManager, lNewSceneHeader, gameOptions);
-			screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lNewGameScreen));
+		case BUTTON_KEY_BINDS:
+			screenManager.addScreen(new KeyBindOptionsScreen(screenManager));
 			break;
 
 		case BUTTON_BACK:

@@ -1,4 +1,4 @@
-package net.lintfordlib.samples.controllers;
+package net.lintfordlib.ld58.controllers;
 
 import net.lintfordlib.controllers.ControllerManager;
 import net.lintfordlib.controllers.core.FafAnimationController;

@@ -1,9 +1,9 @@
-package net.lintfordlib.samples;
+package net.lintfordlib.ld58;
 
 import net.lintfordlib.GameInfo;
 import net.lintfordlib.core.debug.Debug.DebugLogLevel;
 
-public class NewGameInfo implements GameInfo {
+public class LD58WindowsInfo implements GameInfo {
 
 	@Override
 	public DebugLogLevel debugLogLevel() {
@@ -44,12 +44,12 @@ public class NewGameInfo implements GameInfo {
 	public int uiCanvasResolutionWidth() {
 		return ConstantsGame.GAME_CANVAS_WIDTH;
 	}
-	
+
 	@Override
 	public int uiCanvasResolutionHeight() {
 		return ConstantsGame.GAME_CANVAS_HEIGHT;
 	}
-	
+
 	@Override
 	public boolean stretchGameResolution() {
 		return true;

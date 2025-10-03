@@ -1,4 +1,4 @@
-package net.lintfordlib.samples.screens.menu;
+package net.lintfordlib.ld58.screens.menu;
 
 import net.lintfordlib.assets.ResourceManager;
 import net.lintfordlib.core.LintfordCore;
@@ -33,7 +33,6 @@ public class MainMenuBackground extends Screen {
 		super.loadResources(resourceManager);
 
 		mBackgroundTexture = resourceManager.textureManager().loadTexture("TEXTURE_MENU_BACKGROUND", "res/textures/textureMainMenuScreen.png", entityGroupUid());
-
 		mCoreSpritesheet = resourceManager.spriteSheetManager().coreSpritesheet();
 	}
 
@@ -49,15 +48,18 @@ public class MainMenuBackground extends Screen {
 	public void draw(LintfordCore core) {
 		super.draw(core);
 
-		final var lCanvasBox = core.gameCamera().boundingRectangle();
-		final var lTextureBatch = rendererManager().sharedResources().uiSpriteBatch();
+		final var canvasBox = core.gameCamera().boundingRectangle();
+		final var textureBatch = rendererManager().sharedResources().uiSpriteBatch();
 
 		core.gameCamera().update(core);
 		core.config().display().reapplyGlViewport();
 
-		lTextureBatch.setColorWhite();
-		lTextureBatch.begin(core.gameCamera());
-		lTextureBatch.draw(mBackgroundTexture, 0, 0, 960, 576, lCanvasBox.left(), lCanvasBox.top(), lCanvasBox.width(), lCanvasBox.height(), .85f);
-		lTextureBatch.end();
+		final var srcWidth = mBackgroundTexture.getTextureWidth();
+		final var srcHeight = mBackgroundTexture.getTextureHeight();
+
+		textureBatch.setColorWhite();
+		textureBatch.begin(core.gameCamera());
+		textureBatch.draw(mBackgroundTexture, 0, 0, srcWidth, srcHeight, canvasBox.left(), canvasBox.top(), canvasBox.width(), canvasBox.height(), .85f);
+		textureBatch.end();
 	}
 }

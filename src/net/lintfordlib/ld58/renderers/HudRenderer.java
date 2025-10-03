@@ -1,4 +1,4 @@
-package net.lintfordlib.samples.renderers;
+package net.lintfordlib.ld58.renderers;
 
 import net.lintfordlib.assets.ResourceManager;
 import net.lintfordlib.core.LintfordCore;

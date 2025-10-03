@@ -1,4 +1,4 @@
-package net.lintfordlib.samples;
+package net.lintfordlib.ld58;
 
 import net.lintfordlib.assets.ResourceGroupProvider;
 
@@ -10,13 +10,14 @@ public class ConstantsGame {
 
 	public static final String FOOTER_TEXT = "(c) 2025 LintfordPickle";
 
-	public static final String APPLICATION_NAME = "LintfordLib Sample";
-	public static final String WINDOW_TITLE = "LintfordLib Sample";
+	public static final String APPLICATION_NAME = "LD58";
+	public static final String WINDOW_TITLE = "LD58";
 
 	public static final float ASPECT_RATIO = 16.f / 9.f;
 
-	public static final int GAME_CANVAS_WIDTH = 960;
-	public static final int GAME_CANVAS_HEIGHT = 576;
+	public static final int GAME_CANVAS_SCALE = 2;
+	public static final int GAME_CANVAS_WIDTH = 960 / GAME_CANVAS_SCALE;
+	public static final int GAME_CANVAS_HEIGHT = 540 / GAME_CANVAS_SCALE;
 
 	public static final int GAME_RESOURCE_GROUP_ID = ResourceGroupProvider.getRollingEntityNumber();
 
@@ -33,7 +34,6 @@ public class ConstantsGame {
 	public static final boolean IS_DEBUG_MODE = true;
 	public static final boolean IS_DEBUG_RENDERING_MODE = true;
 
-	public static final boolean IS_AI_ENABLED = true;
 	public static final boolean CAMERA_DEBUG_MODE = true;
 
 }

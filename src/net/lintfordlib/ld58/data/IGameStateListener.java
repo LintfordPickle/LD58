@@ -1,4 +1,4 @@
-package net.lintfordlib.samples.data;
+package net.lintfordlib.ld58.data;
 
 public interface IGameStateListener {
 

@@ -1,4 +1,4 @@
-package net.lintfordlib.samples;
+package net.lintfordlib.ld58;
 
 import net.lintfordlib.assets.ResourceManager;
 import net.lintfordlib.assets.ResourceMapLoader;

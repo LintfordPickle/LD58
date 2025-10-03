@@ -1,19 +1,38 @@
-package net.lintfordlib.samples;
+package net.lintfordlib.ld58;
 
 import net.lintfordlib.GameInfo;
+import net.lintfordlib.GameVersion;
 import net.lintfordlib.assets.ResourceLoader;
 import net.lintfordlib.controllers.music.MusicController;
 import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.fonts.BitmapFontManager;
 import net.lintfordlib.core.input.KeyEventActionManager;
 import net.lintfordlib.core.rendering.SharedResources;
-import net.lintfordlib.samples.screens.MainMenu;
-import net.lintfordlib.samples.screens.menu.CreditsScreen;
-import net.lintfordlib.samples.screens.menu.MainMenuBackground;
+import net.lintfordlib.ld58.screens.MainMenu;
+import net.lintfordlib.ld58.screens.menu.CreditsScreen;
+import net.lintfordlib.ld58.screens.menu.MainMenuBackground;
 import net.lintfordlib.screenmanager.ScreenManager;
 import net.lintfordlib.screenmanager.toast.ToastManager;
 
-public abstract class NewGameBase extends LintfordCore {
+public class GameWindow extends LintfordCore {
+
+	private final int APP_VERSION_MAJ = 0;
+	private final int APP_VERSION_MIN = 1;
+	private final int APP_VERSION_BUILD = 1;
+
+	private final String APP_POSTFIX = "09042024";
+
+	private void setGameVersion() {
+		GameVersion.setGameVersion(APP_VERSION_MAJ, APP_VERSION_MIN, APP_VERSION_BUILD, APP_POSTFIX);
+	}
+
+	// ---------------------------------------------
+	// Entry Point
+	// ---------------------------------------------
+
+	public static void main(String[] args) {
+		new GameWindow(new LD58WindowsInfo(), args).createWindow();
+	}
 
 	// ---------------------------------------------
 	// Variables
@@ -21,7 +40,7 @@ public abstract class NewGameBase extends LintfordCore {
 
 	protected int mEntityGroupID;
 
-	protected NewGameKeyActions mGameKeyActions;
+	protected LD58KeyActions mGameKeyActions;
 	protected ResourceLoader mGameResourceLoader;
 	protected ScreenManager mScreenManager;
 
@@ -37,13 +56,16 @@ public abstract class NewGameBase extends LintfordCore {
 	// Constructor
 	// ---------------------------------------------
 
-	public NewGameBase(GameInfo pGameInfo, String[] pArgs) {
+	public GameWindow(GameInfo pGameInfo, String[] pArgs) {
 		super(pGameInfo, pArgs, false);
+
+		setGameVersion();
 
 		mEntityGroupID = ConstantsGame.GAME_RESOURCE_GROUP_ID;
 		mIsFixedTimeStep = true;
 
 		mScreenManager = new ScreenManager(this);
+
 	}
 
 	// ---------------------------------------------
@@ -52,7 +74,7 @@ public abstract class NewGameBase extends LintfordCore {
 
 	@Override
 	protected void onInitializeInputActions(KeyEventActionManager eventActionManager) {
-		eventActionManager.addGameKeyActions(new NewGameKeyActions());
+		eventActionManager.addGameKeyActions(new LD58KeyActions());
 
 		super.onInitializeInputActions(eventActionManager);
 	}

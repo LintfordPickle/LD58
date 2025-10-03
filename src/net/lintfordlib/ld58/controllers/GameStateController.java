@@ -1,9 +1,9 @@
-package net.lintfordlib.samples.controllers;
+package net.lintfordlib.ld58.controllers;
 
 import net.lintfordlib.controllers.BaseController;
 import net.lintfordlib.controllers.ControllerManager;
 import net.lintfordlib.core.LintfordCore;
-import net.lintfordlib.samples.data.IGameStateListener;
+import net.lintfordlib.ld58.data.IGameStateListener;
 
 public class GameStateController extends BaseController {
 

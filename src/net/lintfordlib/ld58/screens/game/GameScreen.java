@@ -1,4 +1,4 @@
-package net.lintfordlib.samples.screens.game;
+package net.lintfordlib.ld58.screens.game;
 
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
@@ -9,16 +9,16 @@ import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.textures.Texture;
 import net.lintfordlib.data.DataManager;
 import net.lintfordlib.data.scene.SceneHeader;
+import net.lintfordlib.ld58.ConstantsGame;
+import net.lintfordlib.ld58.LD58KeyActions;
+import net.lintfordlib.ld58.controllers.AnimationController;
+import net.lintfordlib.ld58.controllers.GameStateController;
+import net.lintfordlib.ld58.data.GameOptions;
+import net.lintfordlib.ld58.data.GameWorld;
+import net.lintfordlib.ld58.data.IGameStateListener;
+import net.lintfordlib.ld58.renderers.AnimationRenderer;
+import net.lintfordlib.ld58.renderers.HudRenderer;
 import net.lintfordlib.renderers.SimpleRendererManager;
-import net.lintfordlib.samples.ConstantsGame;
-import net.lintfordlib.samples.NewGameKeyActions;
-import net.lintfordlib.samples.controllers.AnimationController;
-import net.lintfordlib.samples.controllers.GameStateController;
-import net.lintfordlib.samples.data.GameOptions;
-import net.lintfordlib.samples.data.GameWorld;
-import net.lintfordlib.samples.data.IGameStateListener;
-import net.lintfordlib.samples.renderers.AnimationRenderer;
-import net.lintfordlib.samples.renderers.HudRenderer;
 import net.lintfordlib.screenmanager.ScreenManager;
 import net.lintfordlib.screenmanager.screens.BaseGameScreen;
 
@@ -31,16 +31,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
 
-	// Data
-	private GameWorld mGameWorld; // reference to data related to the scene
+	private GameWorld mGameWorld;
 
 	private Texture mGameBackgroundTexture;
 
-	// Controllers
 	private GameStateController mGameStateController;
 	private AnimationController mAnimationController;
 
-	// Renderers
 	private AnimationRenderer mAnimationRenderer;
 	private HudRenderer mHudRenderer;
 
@@ -97,7 +94,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		// For simple games you could add code to perform the game update logic here.
 		// However usually, components would be updated in dedicated BaseControllers (see the CONTROLLERS Section below).
 
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(NewGameKeyActions.KEY_BINDING_PRIMARY_FIRE)) {
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_PRIMARY_FIRE)) {
 			screenManager.toastManager().addMessage(getClass().getSimpleName(), "PRIMARY FIRE", 1500);
 		}
 
@@ -114,24 +111,22 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 		final var sx = 0.f;
 		final var sy = 0.f;
-		final var sw = 960.f;
-		final var sh = 540.f;
+		final var sw = mGameBackgroundTexture.getTextureWidth();
+		final var sh = mGameBackgroundTexture.getTextureHeight();
 
-		final var dstx = -960.f / 2.f;
-		final var dsty = -540.f / 2.f;
-		final var dstw = 960.f;
-		final var dsth = 540.f;
+		final var dstx = -ConstantsGame.GAME_CANVAS_WIDTH / 2.f;
+		final var dsty = -ConstantsGame.GAME_CANVAS_HEIGHT / 2.f;
+		final var dstw = ConstantsGame.GAME_CANVAS_WIDTH;
+		final var dsth = ConstantsGame.GAME_CANVAS_HEIGHT;
 
 		final var zDepth = 1.f;
 
+		core.gameCamera().update(core);
 		lTextureBatch.begin(core.gameCamera());
 		lTextureBatch.draw(mGameBackgroundTexture, sx, sy, sw, sh, dstx, dsty, dstw, dsth, zDepth);
 		lTextureBatch.end();
 
 		super.draw(core);
-
-		// For simple games you could add code to render a basic scene directly here.
-		// However usually, the rendering would be performed by a specific BaseRenderer (see the RENDERERS section below).
 
 	}
 

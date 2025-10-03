@@ -1,6 +1,6 @@
 <!-- 
 ====================================================================== 
-     Project     :	Sample Project
+     Project     :	LD58
      
      Required on environment path:
       - LINT_LIBS_PATH
@@ -15,7 +15,7 @@
 
 	<property environment="env" />
 
-	<property name="PROJECT_NAME" value="Sample" />
+	<property name="PROJECT_NAME" value="LD58" />
 	<property name="APPLICATION_NAME" value="Core" />
 	<property name="PLATFORM_NAME" value="x86_64" />
 

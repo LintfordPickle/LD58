@@ -1,14 +1,12 @@
-package net.lintfordlib.samples.screens.game;
+package net.lintfordlib.ld58.screens.game;
 
-import net.lintfordlib.assets.ResourceManager;
-import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.ColorConstants;
-import net.lintfordlib.core.graphics.sprites.spritesheet.SpriteSheetDefinition;
 import net.lintfordlib.data.scene.SceneHeader;
-import net.lintfordlib.samples.ConstantsGame;
-import net.lintfordlib.samples.data.GameOptions;
-import net.lintfordlib.samples.screens.MainMenu;
-import net.lintfordlib.samples.screens.menu.CreditsScreen;
+import net.lintfordlib.ld58.data.GameOptions;
+import net.lintfordlib.ld58.screens.MainMenu;
+import net.lintfordlib.ld58.screens.menu.CreditsScreen;
+import net.lintfordlib.ld58.screens.menu.MainMenuBackground;
+import net.lintfordlib.ld58.screens.menu.OptionsScreen;
 import net.lintfordlib.screenmanager.MenuEntry;
 import net.lintfordlib.screenmanager.MenuScreen;
 import net.lintfordlib.screenmanager.ScreenManager;
@@ -16,13 +14,14 @@ import net.lintfordlib.screenmanager.ScreenManagerConstants.FILLTYPE;
 import net.lintfordlib.screenmanager.layouts.ListLayout;
 import net.lintfordlib.screenmanager.screens.LoadingScreen;
 
-public class WonScreen extends MenuScreen {
+public class PauseScreen extends MenuScreen {
 
 	// --------------------------------------
 	// Constants
 	// --------------------------------------
 
 	private static final int SCREEN_BUTTON_CONTINUE = 10;
+	private static final int SCREEN_BUTTON_OPTIONS = 11;
 	private static final int SCREEN_BUTTON_RESTART = 12;
 	private static final int SCREEN_BUTTON_EXIT = 13;
 
@@ -32,13 +31,12 @@ public class WonScreen extends MenuScreen {
 
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
-	private SpriteSheetDefinition mGameSpritesheetDef;
 
 	// --------------------------------------
 	// Constructor
 	// --------------------------------------
 
-	public WonScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions) {
+	public PauseScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions) {
 		super(screenManager, null);
 
 		mSceneHeader = sceneHeader;
@@ -48,10 +46,13 @@ public class WonScreen extends MenuScreen {
 		lLayout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
 		lLayout.setDrawBackground(true, ColorConstants.WHITE());
 		lLayout.showTitle(true);
-		lLayout.title("You love to see it!");
+		lLayout.title("Paused");
 
 		final var lContinueEntry = new MenuEntry(screenManager, this, "Continue");
 		lContinueEntry.registerClickListener(this, SCREEN_BUTTON_CONTINUE);
+
+		final var lOptionsEntry = new MenuEntry(screenManager, this, "Options");
+		lOptionsEntry.registerClickListener(this, SCREEN_BUTTON_OPTIONS);
 
 		final var lRestartEntry = new MenuEntry(screenManager, this, "Restart");
 		lRestartEntry.registerClickListener(this, SCREEN_BUTTON_RESTART);
@@ -62,11 +63,13 @@ public class WonScreen extends MenuScreen {
 		lLayout.addMenuEntry(lContinueEntry);
 		lLayout.addMenuEntry(lRestartEntry);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
+		lLayout.addMenuEntry(lOptionsEntry);
+		lLayout.addMenuEntry(MenuEntry.menuSeparator());
 		lLayout.addMenuEntry(lExitToMenuEntry);
 
 		mLayouts.add(lLayout);
 
-		mIsPopup = false;
+		mIsPopup = true;
 		mShowBackgroundScreens = true;
 
 		mBlockGamepadInputInBackground = true;
@@ -74,45 +77,6 @@ public class WonScreen extends MenuScreen {
 		mBlockMouseInputInBackground = true;
 
 		mShowContextualKeyHints = false;
-
-		mScreenPaddingTop = 120;
-	}
-
-	// --------------------------------------
-	// Core-Methods
-	// --------------------------------------
-
-	@Override
-	public void loadResources(ResourceManager resourceManager) {
-		super.loadResources(resourceManager);
-
-		mGameSpritesheetDef = resourceManager.spriteSheetManager().getSpriteSheet("SPRITESHEET_GAME", ConstantsGame.GAME_RESOURCE_GROUP_ID);
-	}
-
-	@Override
-	public void unloadResources() {
-		super.unloadResources();
-
-		mGameSpritesheetDef = null;
-	}
-
-	@Override
-	public void draw(LintfordCore core) {
-		super.draw(core);
-
-		if (mGameSpritesheetDef == null)
-			return;
-
-		final var lSpriteFrame = mGameSpritesheetDef.getSpriteFrame("WONTEXT");
-
-		if (lSpriteFrame != null) {
-			final var lTextureBatch = mRendererManager.sharedResources().uiSpriteBatch();
-			lTextureBatch.setColorWhite();
-
-			lTextureBatch.begin(core.gameCamera());
-			lTextureBatch.draw(mGameSpritesheetDef, lSpriteFrame, -lSpriteFrame.width() * .5f, core.gameCamera().boundingRectangle().top() + 32, lSpriteFrame.width(), lSpriteFrame.height(), .1f);
-			lTextureBatch.end();
-		}
 	}
 
 	// --------------------------------------
@@ -126,13 +90,17 @@ public class WonScreen extends MenuScreen {
 			exitScreen();
 			return;
 
+		case SCREEN_BUTTON_OPTIONS:
+			screenManager.addScreen(new OptionsScreen(screenManager));
+			break;
+
 		case SCREEN_BUTTON_RESTART:
-			final var lLoadingScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
-			screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lLoadingScreen));
+			final var lGameScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
+			screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lGameScreen));
 			break;
 
 		case SCREEN_BUTTON_EXIT:
-			screenManager.createLoadingScreen(new LoadingScreen(screenManager, false, false, new CreditsScreen(screenManager), new MainMenu(screenManager)));
+			screenManager.createLoadingScreen(new LoadingScreen(screenManager, false, false, new MainMenuBackground(screenManager), new CreditsScreen(screenManager), new MainMenu(screenManager)));
 			break;
 
 		}

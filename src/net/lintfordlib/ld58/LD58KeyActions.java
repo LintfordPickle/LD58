@@ -1,4 +1,4 @@
-package net.lintfordlib.samples;
+package net.lintfordlib.ld58;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -9,14 +9,14 @@ import net.lintfordlib.core.input.GameKeyActions;
 
 //@formatter:off
 
-public class NewGameKeyActions extends GameKeyActions {
+public class LD58KeyActions extends GameKeyActions {
 
 	public static final int KEY_BINDING_PRIMARY_FIRE 		= 1000;
 	public static final int KEY_BINDING_PRIMARY_FORWARD 	= 1001;
 	public static final int KEY_BINDING_PRIMARY_LEFT 		= 1002;
 	public static final int KEY_BINDING_PRIMARY_RIGHT 		= 1003;
 
-	public NewGameKeyActions() {
+	public LD58KeyActions() {
 		addNewKeyboardBinding("Primary Fire", 	KEY_BINDING_PRIMARY_FIRE, 		GLFW.GLFW_KEY_SPACE);
 		addNewKeyboardBinding("Forward", 		KEY_BINDING_PRIMARY_FORWARD, 	GLFW.GLFW_KEY_W);
 		addNewKeyboardBinding("Left", 			KEY_BINDING_PRIMARY_LEFT, 		GLFW.GLFW_KEY_A);
