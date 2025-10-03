@@ -1,0 +1,9 @@
+{
+  "AssetRootDirectory": "res\\def\\particles\\systems\\",
+  "ItemFilepaths": [
+    "ps_footsteps.json",
+    "ps_demonsteps.json",
+    "ps_stepfire.json",
+    "leaf.json"
+  ]
+}

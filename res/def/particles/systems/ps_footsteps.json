@@ -1,0 +1,40 @@
+{
+  "initializers": [
+    {
+      "value": 2.0,
+      "className": "ParticleSetScaleInitializer"
+    },
+    {
+      "minValue0": 0.0,
+      "maxValue0": 4.0,
+      "minValue1": 0.0,
+      "maxValue1": 4.0,
+      "className": "ParticleRandomOffsetInitializer"
+    },
+    {
+      "value0": 2.0,
+      "value1": 4.0,
+      "className": "ParticleSetSizeInitializer"
+    }
+  ],
+  "modifiers": [
+    {
+      "className": "ParticleTurnToFaceModifier"
+    },
+    {
+      "minAlphaAmount": 1.0,
+      "maxAlphaAmount": 0.0,
+      "className": "ParticleAlphaModifier"
+    }
+  ],
+  "maxParticleCount": 150,
+  "particleLifeMin": 1500.0,
+  "particleLifeMax": 1500.0,
+  "spritesheetName": "SPRITESHEET_PARTICLES",
+  "spriteName": "FOOTSTEP",
+  "textureFilterMode": 0,
+  "glSrcBlendFactor": 770,
+  "glDestBlendFactor": 771,
+  "name": "PS_FOOTSTEPS",
+  "displayName": "PS_FOOTSTEPS"
+}

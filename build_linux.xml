@@ -1,0 +1,185 @@
+<!-- 
+====================================================================== 
+     Project     :	LD 55 - Summoning (linux)
+     
+     Required on environment path:
+      - LINT_LIBS_PATH
+      - LINT_TOOLS_PATH
+      - LINT_DIST_PATH 
+
+====================================================================== 
+-->
+<project name="Build_linux" basedir="." default="main">
+
+	<target name="main" depends="clean, init, copy.dep, compile, createjar, notify.jre, bundle.jre" />
+	
+	<property environment="env" />
+
+	<property name="PROJECT_NAME" value="FanTac" />
+	<property name="APPLICATION_NAME" value="Core" />
+	<property name="PLATFORM_NAME" value="linux" />
+	
+	<property name="LIBS_PATH" value="${env.LINT_LIBS_PATH}" />
+	<property name="TOOLS_PATH" value="${env.LINT_TOOLS_PATH}" />
+	<property name="DIST_PATH" value="${env.LINT_DIST_PATH}" />
+
+	<property name="LintfordLib.dir" value="${LIBS_PATH}/LintfordLib" />
+	<property name="JavaLauncher.dir" value="${TOOLS_PATH}/build/launcher" />
+	<property name="jre.dir">jre</property>
+
+	<property name="client-main-class">lintfordpickle.fantac.GameWindow</property>
+	<property name="compile-target-version" value="21" />
+	<property name="compile-source-version" value="21" />
+
+	<!-- Input directories -->
+	<property name="input.src.dir" value="src" />
+	<property name="input.lib.dir" value="libs" />
+	<property name="input.res.dir" value="res" />
+	<property name="input.lib.natives.dir" value="natives" />
+
+	<!-- Output directories -->
+	<property name="base.output.dir" value="${DIST_PATH}/${PROJECT_NAME}" />
+
+	<property name="build.dir" value="${base.output.dir}/build" />
+	<property name="build.classes" value="${build.dir}/classes" />
+	<property name="dist.dir" value="${base.output.dir}/${PLATFORM_NAME}" />
+	
+	<property name="dist.lib" value="${dist.dir}/libs/" />
+	<property name="dist.doc" value="${dist.dir}/docs/" />
+	<property name="dist.res" value="${dist.dir}/res" />
+	<property name="dist.jre" value="${dist.dir}/${jre.dir}/" />
+
+	
+	<!-- clean directories -->
+	<target name="clean">
+		<echo message="Clean directories" />
+		
+		<delete dir="${dist.dir}" />
+	</target>
+
+	
+	<!-- Create the build paths -->
+	<target name="init">
+		<echo message="Create directory structure" />
+		
+		<mkdir dir="${base.output.dir}" />
+		<mkdir dir="${build.classes}" />
+		<mkdir dir="${dist.res}" />
+	</target>
+
+
+	
+	<target name="copy.dep">
+		<echo message="Copying dependencies" />
+		
+		<!-- Copy the LintfordLib class files into our build directory. This integrates LintfordLib into our jar. -->
+		<copy todir="${build.dir}">
+			<fileset dir="${LintfordLib.dir}/build">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+
+		<copy todir="${dist.dir}/">
+			<fileset dir="${basedir}">
+				<include name="res_map.json" />
+			</fileset>
+		</copy>
+
+		<copy todir="${dist.dir}/">
+			<fileset dir="${LintfordLib.dir}/${PLATFORM_NAME}">
+				<include name="**/*.jar" />
+				<exclude name="**/*javadoc*" />
+				<exclude name="**/*sources*" />
+				<exclude name="**/*windows*" />
+				<exclude name="**/*macos*" />
+				<exclude name="LintfordLib.jar" />
+			</fileset>
+		</copy>
+
+		<!-- copy game resources into dist -->
+		<copy todir="${dist.res}">
+			<fileset dir="${basedir}/${input.res.dir}">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+
+		<!-- copy game lib dependencies into dist. n.b. this assumes no platform specific deps. -->
+		<copy todir="${dist.lib}">
+			<fileset dir="${basedir}/${input.lib.dir}">
+				<exclude name="**/*javadoc*" />
+				<exclude name="**/*src*" />
+				<exclude name="**/*windows*" />
+				<exclude name="**/*macos*" />
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+	</target>
+
+
+	
+	<!-- Define the set of .jar files in the input lib dir as the classpath -->
+	<path id="build.class.path">
+		<fileset dir="${input.lib.dir}" includes="**/*.jar" />
+		<fileset dir="${LintfordLib.dir}/${PLATFORM_NAME}" includes="**/*.jar" />
+	</path>
+
+	
+	<!-- compile source -->
+	<target name="compile">
+		<echo message="Compilation" />
+
+		<javac srcdir="${input.src.dir}" destdir="${build.classes}" classpathref="build.class.path" includeantruntime="false" />
+	</target>
+
+	
+
+	<!-- We will add these jar files to the manifests classpath -->
+	<pathconvert property="manifest.classpath" pathsep=" ">
+		<path refid="build.class.path" />
+		<mapper>
+			<chainedmapper>
+				<flattenmapper />
+				<globmapper from="*.jar" to="libs/*.jar" />
+			</chainedmapper>
+		</mapper>
+	</pathconvert>
+
+	<!-- create jar -->
+	<target name="createjar" depends="compile">
+		<echo message="Create Jar" />
+		
+		<jar destfile="${dist.jar}/${APPLICATION_NAME}.jar" basedir="${build.dir}/classes">
+			<fileset dir="${build.dir}/res" />
+			<manifest>
+				<attribute name="Main-Class" value="${client-main-class}" />
+				<attribute name="Class-Path" value="${manifest.classpath}" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="notify.jre" depends="check.jre" if="jre.dir.exists">
+		<echo message="Notify JRE" />
+		<echo message="${dist.jre} exists. Not copying JRE" />
+	</target>
+
+	<target name="check.jre">
+		<echo message="Check JRE" />
+		
+		<condition property="jre.dir.exists">
+			<available file="${dist.jre}" type="dir" />
+		</condition>
+	</target>
+
+	<target name="bundle.jre" depends="check.jre" unless="jre.dir.exists">
+		<echo message="Bundling JRE to ${dist.jre}" />
+		
+		<exec executable="cmd">
+			<arg value="/c" />
+			<arg value='jlink --module-path "${dist.jre}\jmods" --add-modules java.base,java.sql,java.desktop,java.management,java.xml,jdk.unsupported,jdk.management --output ${dist.jre} --compress 2 --strip-debug --no-header-files --no-man-pages' />
+		</exec>
+	</target>
+
+
+	<!-- TODO: elf file thing for linux -->
+
+</project>

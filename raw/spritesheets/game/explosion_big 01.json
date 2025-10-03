@@ -1,0 +1,19 @@
+{
+  "SpriteName": "EXPLOSION_BIG_01",
+  "PivotPointX": 0,
+  "PivotPointY": 0,
+  "ScaleX": 1.0,
+  "ScaleY": 1.0,
+  "AnchorToPointName": null,
+  "EditorMetaData": {
+    "EditorZoomFactor": 3,
+    "EditorCanvasPositionX": -512,
+    "EditorCanvasPositionY": -512,
+    "EditorReferenceSpriteEnabled": true,
+    "EditorReferenceFrameX": 7,
+    "EditorReferenceFrameY": 18,
+    "EditorReferenceFrameW": 60,
+    "EditorReferenceFrameH": 63
+  },
+  "anchorPoints": []
+}

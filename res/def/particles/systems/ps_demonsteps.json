@@ -1,0 +1,33 @@
+{
+  "initializers": [
+    {
+      "value0": 5.0,
+      "value1": 5.0,
+      "className": "ParticleSetSizeInitializer"
+    },
+    {
+      "value": 2.0,
+      "className": "ParticleSetScaleInitializer"
+    }
+  ],
+  "modifiers": [
+    {
+      "minAlphaAmount": 1.0,
+      "maxAlphaAmount": 0.0,
+      "className": "ParticleAlphaModifier"
+    },
+    {
+      "className": "ParticleTurnToFaceModifier"
+    }
+  ],
+  "maxParticleCount": 150,
+  "particleLifeMin": 2000.0,
+  "particleLifeMax": 2000.0,
+  "spritesheetName": "SPRITESHEET_PARTICLES",
+  "spriteName": "DEMONFOOTSTEP",
+  "textureFilterMode": 0,
+  "glSrcBlendFactor": 770,
+  "glDestBlendFactor": 771,
+  "name": "PS_DEMONSTEPS",
+  "displayName": "PS_DEMONSTEPS"
+}

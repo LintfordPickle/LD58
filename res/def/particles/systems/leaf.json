@@ -1,0 +1,57 @@
+{
+  "initializers": [
+    {
+      "value0": 5.0,
+      "value1": 5.0,
+      "className": "ParticleSetSizeInitializer"
+    },
+    {
+      "value": 1.0,
+      "className": "ParticleSetScaleInitializer"
+    },
+    {
+      "minValue0": 0.0,
+      "maxValue0": 1.0,
+      "minValue1": 1.0,
+      "maxValue1": 1.0,
+      "minValue2": 0.0,
+      "maxValue2": 1.0,
+      "minValue3": 0.0,
+      "maxValue3": 1.0,
+      "className": "ParticleRandomColorInitializer"
+    },
+    {
+      "minValue0": 0.0,
+      "maxValue0": 3.0,
+      "minValue1": 0.0,
+      "maxValue1": 2.0,
+      "className": "ParticleRandomRotationInitializer"
+    }
+  ],
+  "modifiers": [
+    {
+      "gravityX": -0.1,
+      "gravityY": 0.1,
+      "className": "ParticleGravityModifier"
+    },
+    {
+      "dragCoefficient": 0.97,
+      "className": "ParticleDragModifier"
+    },
+    {
+      "enableMovement": true,
+      "enableRotation": true,
+      "className": "ParticlePhysicsModifier"
+    }
+  ],
+  "maxParticleCount": 64,
+  "particleLifeMin": 1000.0,
+  "particleLifeMax": 1500.0,
+  "spritesheetName": "SPRITESHEET_PARTICLES",
+  "spriteName": "LEAF",
+  "textureFilterMode": 0,
+  "glSrcBlendFactor": 770,
+  "glDestBlendFactor": 771,
+  "name": "PS_LEAF",
+  "displayName": "leaf"
+}

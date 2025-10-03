@@ -1,0 +1,29 @@
+{
+  "outputDataFilename": "..\\..\\res\\spritesheets\\spritesheetParticles.json",
+  "outputNameDataFilename": null,
+  "outputImageFilename": "..\\..\\res\\textures\\textureParticles.png",
+  "workingDirectory": "particles",
+  "spriteSheetName": "SPRITESHEET_PARTICLES",
+  "textureName": "TEXTURE_PARTICLES",
+  "dataPackageName": "enter.package.name",
+  "exportDataFile": true,
+  "exportTextureFile": true,
+  "exportNamesFile": true,
+  "sortMode": "Area",
+  "borderPadding": 0,
+  "shapeOutlines": false,
+  "crop": false,
+  "trim": false,
+  "allowRotations": false,
+  "spritePadding": 2,
+  "textureWidthMax": 128,
+  "textureWidthActual": 128,
+  "textureHeightMax": 128,
+  "textureHeightActual": 128,
+  "forcePoTTextures": true,
+  "autoSizeTexture": false,
+  "itemFilenames": [
+    "D:\\dev\\java\\_razorrunner\\projects\\LintfordLibSamples\\raw\\spritesheets\\particles\\*.*"
+  ],
+  "animationItems": {}
+}

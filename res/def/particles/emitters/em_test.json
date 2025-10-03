@@ -1,0 +1,32 @@
+{
+  "triggerType": 0,
+  "emitTimeMin": 0.0,
+  "emitTimeMax": 0.0,
+  "emitAmountMin": 0,
+  "emitAmountMax": 0,
+  "emitForceMin": 0.0,
+  "emitForceMax": 0.0,
+  "positionRelOffsetX": 0.0,
+  "positionRelOffsetY": 0.0,
+  "positionRelOffsetRot": 0.0,
+  "particleSystemName": "PS_TEST",
+  "useSharedParticleSystem": false,
+  "childEmitters": [
+    {
+      "triggerType": 0,
+      "emitTimeMin": 0.0,
+      "emitTimeMax": 0.0,
+      "emitAmountMin": 0,
+      "emitAmountMax": 0,
+      "emitForceMin": 0.0,
+      "emitForceMax": 0.0,
+      "positionRelOffsetX": 0.0,
+      "positionRelOffsetY": 0.0,
+      "positionRelOffsetRot": 0.0,
+      "useSharedParticleSystem": false,
+      "childEmitters": [],
+      "name": "EM_TEST2"
+    }
+  ],
+  "name": "EM_TEST"
+}

@@ -1,0 +1,46 @@
+{
+  "spriteSheetName": "SPRITESHEET_PARTICLES",
+  "textureName": "TEXTURE_PARTICLES",
+  "spriteFrames": [
+    {
+      "name": "PARTICLE_LEAF",
+      "x": 0,
+      "y": 3,
+      "w": 16,
+      "h": 16,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    },
+    {
+      "name": "PARTICLE_00",
+      "x": 0,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    },
+    {
+      "name": "PARTICLE_TEST",
+      "x": 4,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    }
+  ],
+  "animationFramesMap": {}
+}

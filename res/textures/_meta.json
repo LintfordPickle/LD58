@@ -1,0 +1,25 @@
+{
+	"textureDefinitions" : [
+		{
+			"textureName":"TEXTURE_PARTICLES",
+			"filepath":"res/textures/textureParticles.png",
+			"filterIndex":1,
+			"wrapSIndex":1,
+			"wrapTIndex":1
+		},
+		{
+			"textureName":"TEXTURE_GAME",
+			"filepath":"res/textures/textureGame.png",
+			"filterIndex":1,
+			"wrapSIndex":1,
+			"wrapTIndex":1
+		},
+		{
+			"textureName":"TEXTURE_GAME_BACKGROUND",
+			"filepath":"res/textures/textureGameBackground.png",
+			"filterIndex":1,
+			"wrapSIndex":1,
+			"wrapTIndex":1
+		}
+	]
+}

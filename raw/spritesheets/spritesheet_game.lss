@@ -1,0 +1,44 @@
+{
+  "outputDataFilename": "..\\..\\res\\spritesheets\\spritesheetGame.json",
+  "outputNameDataFilename": null,
+  "outputImageFilename": "..\\..\\res\\textures\\textureGame.png",
+  "workingDirectory": "",
+  "spriteSheetName": "SPRITESHEET_GAME",
+  "textureName": "TEXTURE_GAME",
+  "dataPackageName": "enter.package.name",
+  "exportDataFile": true,
+  "exportTextureFile": true,
+  "exportNamesFile": false,
+  "sortMode": "Area",
+  "borderPadding": 0,
+  "shapeOutlines": false,
+  "crop": false,
+  "trim": false,
+  "allowRotations": false,
+  "spritePadding": 2,
+  "textureWidthMax": 256,
+  "textureWidthActual": 256,
+  "textureHeightMax": 256,
+  "textureHeightActual": 256,
+  "forcePoTTextures": true,
+  "autoSizeTexture": false,
+  "itemFilenames": [
+    "D:\\dev\\java\\_razorrunner\\projects\\LintfordLibSamples\\raw\\spritesheets\\game\\*.*"
+  ],
+  "animationItems": {
+    "explosion": {
+      "loopAnimation": false,
+      "frameDuration": 50,
+      "animationSprites": [
+        "EXPLOSION_BIG_00",
+        "EXPLOSION_BIG_01",
+        "EXPLOSION_BIG_02",
+        "EXPLOSION_BIG_03",
+        "EXPLOSION_BIG_04",
+        "EXPLOSION_BIG_05",
+        "EXPLOSION_BIG_06",
+        "EXPLOSION_BIG_07"
+      ]
+    }
+  }
+}
