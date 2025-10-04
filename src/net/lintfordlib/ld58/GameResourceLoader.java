@@ -66,23 +66,23 @@ public class GameResourceLoader extends ResourceMapLoader {
 	protected void onDraw(LintfordCore core) {
 		super.onDraw(core);
 
-		final var lAnimSpeed = 3.f;
-		mRunningTime += (float) frameDelta * .001f * lAnimSpeed;
+		final var animSpeed = 3.f;
+		mRunningTime += (float) frameDelta * .001f * animSpeed;
 
-		final var lHudBounds = core.HUD().boundingRectangle();
+		final var hudBounds = core.HUD().boundingRectangle();
+
+		final var width = mLoadingBackgroundTexture.getTextureWidth();
+		final var height = mLoadingBackgroundTexture.getTextureHeight();
 
 		mTextureBatch.begin(core.HUD());
 		mTextureBatch.setColorWhite();
-		mTextureBatch.draw(mLoadingBackgroundTexture, 0.f, 0.f, 960.f, 576.f, core.HUD().boundingRectangle(), .01f);
+		mTextureBatch.draw(mLoadingBackgroundTexture, 0.f, 0.f, width, height, core.HUD().boundingRectangle(), .01f);
 
-		final var lDstX = lHudBounds.right() - 6.f - 32.f;
-		final var lDstY = lHudBounds.bottom() - 6.f - 32.f;
+		final var lDstX = hudBounds.right() - 6.f - 32.f;
+		final var lDstY = hudBounds.bottom() - 6.f - 32.f;
 
 		mTextureBatch.drawAroundCenter(mLoadingTexture, 0.f, 0.f, 64.f, 64.f, lDstX, lDstY, 64.f, 64f, -0.01f, mRunningTime, 0.f, 0.f, 1.f);
 		mTextureBatch.end();
-
-		// You can optionally display a graphic here which is rendered for as long as the resources are being loaded.
-
 	}
 
 	@Override

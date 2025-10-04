@@ -8,7 +8,10 @@ import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.fonts.BitmapFontManager;
 import net.lintfordlib.core.input.KeyEventActionManager;
 import net.lintfordlib.core.rendering.SharedResources;
+import net.lintfordlib.ld58.data.GameOptions;
+import net.lintfordlib.ld58.data.SampleSceneHeader;
 import net.lintfordlib.ld58.screens.MainMenu;
+import net.lintfordlib.ld58.screens.game.GameScreen;
 import net.lintfordlib.ld58.screens.menu.CreditsScreen;
 import net.lintfordlib.ld58.screens.menu.MainMenuBackground;
 import net.lintfordlib.screenmanager.ScreenManager;
@@ -20,7 +23,7 @@ public class GameWindow extends LintfordCore {
 	private final int APP_VERSION_MIN = 1;
 	private final int APP_VERSION_BUILD = 1;
 
-	private final String APP_POSTFIX = "09042024";
+	private final String APP_POSTFIX = "20251004";
 
 	private void setGameVersion() {
 		GameVersion.setGameVersion(APP_VERSION_MAJ, APP_VERSION_MIN, APP_VERSION_BUILD, APP_POSTFIX);
@@ -112,7 +115,7 @@ public class GameWindow extends LintfordCore {
 		mGameResourceLoader = new GameResourceLoader(mResourceManager, config().display(), 0);
 
 		mGameResourceLoader.loadResources(mResourceManager);
-		mGameResourceLoader.setMinimumTimeToShowLogosMs(ConstantsGame.IS_DEBUG_MODE ? 0 : 2000);
+		mGameResourceLoader.setMinimumTimeToShowLogosMs(ConstantsGame.START_GAME_IMMEDIATELY ? 0 : 2000);
 		mGameResourceLoader.loadResourcesInBackground(this);
 
 		mResourceManager.audioManager().loadAudioFilesFromMetafile("res/audio/_meta.json");
@@ -126,11 +129,15 @@ public class GameWindow extends LintfordCore {
 
 	@Override
 	protected void finializeAppSetup() {
+		if (ConstantsGame.START_GAME_IMMEDIATELY) {
+			mScreenManager.addScreen(new GameScreen(mScreenManager, new SampleSceneHeader(), new GameOptions()));
+			return;
+		}
+
 		mScreenManager.addScreen(new MainMenuBackground(mScreenManager));
 		mScreenManager.addScreen(new CreditsScreen(mScreenManager));
 		mScreenManager.addScreen(new MainMenu(mScreenManager));
 
-//		mScreenManager.addScreen(new GameScreen(mScreenManager, null));
 	}
 
 	@Override

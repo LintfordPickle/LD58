@@ -3,11 +3,11 @@
   "textureName": "TEXTURE_GAME",
   "spriteFrames": [
     {
-      "name": "EXPLOSION_BIG_00",
+      "name": "COIN_00",
       "x": 0,
       "y": 0,
-      "w": 64,
-      "h": 64,
+      "w": 48,
+      "h": 48,
       "pivotX": 0,
       "pivotY": 0,
       "scaleX": 1.0,
@@ -16,11 +16,11 @@
       "anchorPoints": []
     },
     {
-      "name": "EXPLOSION_BIG_01",
-      "x": 66,
+      "name": "ENEMY_MID",
+      "x": 50,
       "y": 0,
-      "w": 64,
-      "h": 64,
+      "w": 48,
+      "h": 48,
       "pivotX": 0,
       "pivotY": 0,
       "scaleX": 1.0,
@@ -29,76 +29,11 @@
       "anchorPoints": []
     },
     {
-      "name": "EXPLOSION_BIG_02",
-      "x": 132,
+      "name": "PLAYER_MID",
+      "x": 100,
       "y": 0,
-      "w": 64,
-      "h": 64,
-      "pivotX": 0,
-      "pivotY": 0,
-      "scaleX": 1.0,
-      "scaleY": 1.0,
-      "anchorToPointName": null,
-      "anchorPoints": []
-    },
-    {
-      "name": "EXPLOSION_BIG_03",
-      "x": 0,
-      "y": 66,
-      "w": 64,
-      "h": 64,
-      "pivotX": 0,
-      "pivotY": 0,
-      "scaleX": 1.0,
-      "scaleY": 1.0,
-      "anchorToPointName": null,
-      "anchorPoints": []
-    },
-    {
-      "name": "EXPLOSION_BIG_04",
-      "x": 66,
-      "y": 66,
-      "w": 64,
-      "h": 64,
-      "pivotX": 0,
-      "pivotY": 0,
-      "scaleX": 1.0,
-      "scaleY": 1.0,
-      "anchorToPointName": null,
-      "anchorPoints": []
-    },
-    {
-      "name": "EXPLOSION_BIG_05",
-      "x": 132,
-      "y": 66,
-      "w": 64,
-      "h": 64,
-      "pivotX": 0,
-      "pivotY": 0,
-      "scaleX": 1.0,
-      "scaleY": 1.0,
-      "anchorToPointName": null,
-      "anchorPoints": []
-    },
-    {
-      "name": "EXPLOSION_BIG_06",
-      "x": 0,
-      "y": 132,
-      "w": 64,
-      "h": 64,
-      "pivotX": 0,
-      "pivotY": 0,
-      "scaleX": 1.0,
-      "scaleY": 1.0,
-      "anchorToPointName": null,
-      "anchorPoints": []
-    },
-    {
-      "name": "EXPLOSION_BIG_07",
-      "x": 66,
-      "y": 132,
-      "w": 64,
-      "h": 64,
+      "w": 48,
+      "h": 48,
       "pivotX": 0,
       "pivotY": 0,
       "scaleX": 1.0,
@@ -107,22 +42,5 @@
       "anchorPoints": []
     }
   ],
-  "animationFramesMap": {
-    "explosion": {
-      "animationName": "explosion",
-      "loopAnimation": false,
-      "frameDuration": 50,
-      "minimumViableRuntime": 0,
-      "animationSpriteIndices": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ]
-    }
-  }
+  "animationFramesMap": {}
 }

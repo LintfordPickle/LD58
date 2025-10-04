@@ -12,16 +12,18 @@ import net.lintfordlib.core.input.GameKeyActions;
 public class LD58KeyActions extends GameKeyActions {
 
 	public static final int KEY_BINDING_PRIMARY_FIRE 		= 1000;
-	public static final int KEY_BINDING_PRIMARY_FORWARD 	= 1001;
+	public static final int KEY_BINDING_FORWARD 	= 1001;
+	public static final int KEY_BINDING_BACKWARD 	= 1004;
 	public static final int KEY_BINDING_PRIMARY_LEFT 		= 1002;
 	public static final int KEY_BINDING_PRIMARY_RIGHT 		= 1003;
 
 	public LD58KeyActions() {
 		addNewKeyboardBinding("Primary Fire", 	KEY_BINDING_PRIMARY_FIRE, 		GLFW.GLFW_KEY_SPACE);
-		addNewKeyboardBinding("Forward", 		KEY_BINDING_PRIMARY_FORWARD, 	GLFW.GLFW_KEY_W);
+		addNewKeyboardBinding("Forward", 		KEY_BINDING_FORWARD, 	GLFW.GLFW_KEY_W);
+		addNewKeyboardBinding("Backwards", 		KEY_BINDING_BACKWARD, 	GLFW.GLFW_KEY_S);
 		addNewKeyboardBinding("Left", 			KEY_BINDING_PRIMARY_LEFT, 		GLFW.GLFW_KEY_A);
 		addNewKeyboardBinding("Right", 			KEY_BINDING_PRIMARY_RIGHT, 		GLFW.GLFW_KEY_D);
 		
-		addNewGamepadBinding("Primary Fire",    KEY_BINDING_PRIMARY_FORWARD,    GLFW.GLFW_GAMEPAD_BUTTON_X);
+		addNewGamepadBinding("Primary Fire",    KEY_BINDING_FORWARD,    GLFW.GLFW_GAMEPAD_BUTTON_X);
 	}
 }

@@ -1,14 +1,14 @@
 {
   "outputDataFilename": "..\\..\\res\\spritesheets\\spritesheetGame.json",
-  "outputNameDataFilename": null,
+  "outputNameDataFilename": "..\\..\\src\\net\\lintfordlib\\ld58\\data\\GameTextureNames.java",
   "outputImageFilename": "..\\..\\res\\textures\\textureGame.png",
   "workingDirectory": "",
   "spriteSheetName": "SPRITESHEET_GAME",
   "textureName": "TEXTURE_GAME",
-  "dataPackageName": "enter.package.name",
+  "dataPackageName": "net.lintfordlib.ld58.data",
   "exportDataFile": true,
   "exportTextureFile": true,
-  "exportNamesFile": false,
+  "exportNamesFile": true,
   "sortMode": "Area",
   "borderPadding": 0,
   "shapeOutlines": false,
@@ -23,22 +23,7 @@
   "forcePoTTextures": true,
   "autoSizeTexture": false,
   "itemFilenames": [
-    "D:\\dev\\java\\_razorrunner\\projects\\LintfordLibSamples\\raw\\spritesheets\\game\\*.*"
+    "D:\\dev\\java\\ludumdare\\58 - Collector\\projects\\LD58\\raw\\spritesheets\\game\\*.*"
   ],
-  "animationItems": {
-    "explosion": {
-      "loopAnimation": false,
-      "frameDuration": 50,
-      "animationSprites": [
-        "EXPLOSION_BIG_00",
-        "EXPLOSION_BIG_01",
-        "EXPLOSION_BIG_02",
-        "EXPLOSION_BIG_03",
-        "EXPLOSION_BIG_04",
-        "EXPLOSION_BIG_05",
-        "EXPLOSION_BIG_06",
-        "EXPLOSION_BIG_07"
-      ]
-    }
-  }
+  "animationItems": {}
 }

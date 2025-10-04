@@ -13,11 +13,11 @@ public class ConstantsGame {
 	public static final String APPLICATION_NAME = "LD58";
 	public static final String WINDOW_TITLE = "LD58";
 
-	public static final float ASPECT_RATIO = 16.f / 9.f;
+	public static final int GAME_CANVAS_SCALE = 1;
+	public static final int GAME_CANVAS_WIDTH = 320 * GAME_CANVAS_SCALE;
+	public static final int GAME_CANVAS_HEIGHT = 240 * GAME_CANVAS_SCALE;
 
-	public static final int GAME_CANVAS_SCALE = 2;
-	public static final int GAME_CANVAS_WIDTH = 960 / GAME_CANVAS_SCALE;
-	public static final int GAME_CANVAS_HEIGHT = 540 / GAME_CANVAS_SCALE;
+	public static final float ASPECT_RATIO = (float) GAME_CANVAS_WIDTH / (float) GAME_CANVAS_HEIGHT;
 
 	public static final int GAME_RESOURCE_GROUP_ID = ResourceGroupProvider.getRollingEntityNumber();
 
@@ -35,5 +35,7 @@ public class ConstantsGame {
 	public static final boolean IS_DEBUG_RENDERING_MODE = true;
 
 	public static final boolean CAMERA_DEBUG_MODE = true;
+
+	public static final boolean START_GAME_IMMEDIATELY = true;
 
 }
