@@ -3,6 +3,7 @@ package net.lintfordlib.ld58.controllers;
 import net.lintfordlib.controllers.BaseController;
 import net.lintfordlib.controllers.ControllerManager;
 import net.lintfordlib.core.LintfordCore;
+import net.lintfordlib.ld58.data.GameState;
 import net.lintfordlib.ld58.data.IGameStateListener;
 
 public class GameStateController extends BaseController {
@@ -18,6 +19,7 @@ public class GameStateController extends BaseController {
 	// --------------------------------------
 
 	private IGameStateListener mGameStateListener;
+	private GameState mGameState;
 
 	// --------------------------------------
 	// Properties
@@ -31,8 +33,10 @@ public class GameStateController extends BaseController {
 	// Constructor
 	// --------------------------------------
 
-	public GameStateController(ControllerManager controllerManager, int entityGroupUId) {
+	public GameStateController(ControllerManager controllerManager, GameState gameState, int entityGroupUId) {
 		super(controllerManager, CONTROLLER_NAME, entityGroupUId);
+
+		mGameState = gameState;
 	}
 
 	// --------------------------------------
@@ -53,9 +57,16 @@ public class GameStateController extends BaseController {
 	public void update(LintfordCore core) {
 		super.update(core);
 
-		// Check for win/lose conditions
+		if (!mGameState.hasGameStarted() || mGameState.hasGameEnded())
+			return;
 
-		// mGameStateListener.onGameLost();
+		// Check for lose conditions
+		if (mGameState.lives() <= 0) {
+			mGameStateListener.onGameLost();
+		}
+
+		// TODO: Check for win conditions
 		// mGameStateListener.onGameWon();
+
 	}
 }

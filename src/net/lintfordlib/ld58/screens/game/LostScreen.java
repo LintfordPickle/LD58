@@ -95,15 +95,6 @@ public class LostScreen extends MenuScreen {
 	public void draw(LintfordCore core) {
 		super.draw(core);
 
-		final var lTextureBatch = mRendererManager.sharedResources().uiSpriteBatch();
-		final var lSpriteFramef = mGameSpritesheetDef.getSpriteFrame("LOSTTEXT");
-
-		lTextureBatch.setColorWhite();
-
-		lTextureBatch.begin(core.gameCamera());
-		lTextureBatch.draw(mGameSpritesheetDef, lSpriteFramef, -lSpriteFramef.width() * .5f, core.gameCamera().boundingRectangle().top() + 32, lSpriteFramef.width(), lSpriteFramef.height(), .1f);
-		lTextureBatch.end();
-
 	}
 
 	// --------------------------------------
