@@ -1,5 +1,7 @@
 package net.lintfordlib.ld58.data;
 
+import net.lintfordlib.core.debug.Debug;
+
 public class GameState {
 
 	// --------------------------------------
@@ -10,14 +12,15 @@ public class GameState {
 	// Variables
 	// --------------------------------------
 
-	private float mDistanceTravelled;
 	private int mCoins;
 	private int mEnemiesKilled;
-	private int mLives;
 	private int mHealth;
 
 	private boolean mHasGameStarted;
 	private boolean mHasGameEnded;
+
+	private float mTrackLengthTotal;
+	private float mPlayerDistance;
 
 	// --------------------------------------
 	// Properties
@@ -35,10 +38,6 @@ public class GameState {
 		return mCoins;
 	}
 
-	public int lives() {
-		return mLives;
-	}
-
 	public int health() {
 		return mHealth;
 	}
@@ -47,8 +46,16 @@ public class GameState {
 		return mEnemiesKilled;
 	}
 
-	public float distanceTravelled() {
-		return mDistanceTravelled;
+	public void playerDistance(float distance) {
+		mPlayerDistance = distance;
+	}
+
+	public float playerDistance() {
+		return mPlayerDistance;
+	}
+
+	public float trackLength() {
+		return mTrackLengthTotal;
 	}
 
 	// --------------------------------------
@@ -63,25 +70,37 @@ public class GameState {
 	// --------------------------------------
 
 	public void reset() {
-		mDistanceTravelled = 0;
+		mPlayerDistance = 0;
 		mCoins = 0;
 		mEnemiesKilled = 0;
-		mLives = 3;
 		mHealth = 3;
 
 		mHasGameStarted = false;
 		mHasGameEnded = false;
 	}
 
-	public void startGame() {
-		if (mHasGameStarted)
+	public void startGame(float trackLength) {
+		if (mHasGameStarted) {
+			Debug.debugManager().logger().w(GameState.class.getSimpleName(), "Game has already been started!");
 			return;
+		}
 
 		if (mHasGameEnded) {
 			reset();
 		}
 
+		mHealth = 3;
+		mTrackLengthTotal = trackLength;
 		mHasGameStarted = true;
+	}
+
+	public void endGame() {
+		if (!mHasGameStarted) {
+			Debug.debugManager().logger().w(GameState.class.getSimpleName(), "Cannot end the game, it has not been started!");
+			return;
+		}
+
+		mHasGameEnded = true;
 	}
 
 	public int getScore() {
@@ -105,10 +124,4 @@ public class GameState {
 
 		return false;
 	}
-
-	public void removeLife() {
-		mLives--;
-
-	}
-
 }

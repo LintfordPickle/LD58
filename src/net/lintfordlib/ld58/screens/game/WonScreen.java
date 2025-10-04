@@ -22,7 +22,7 @@ public class WonScreen extends MenuScreen {
 	// Constants
 	// --------------------------------------
 
-	private static final int SCREEN_BUTTON_CONTINUE = 10;
+	private static final int SCREEN_BUTTON_NEXT = 10;
 	private static final int SCREEN_BUTTON_RESTART = 12;
 	private static final int SCREEN_BUTTON_EXIT = 13;
 
@@ -44,30 +44,33 @@ public class WonScreen extends MenuScreen {
 		mSceneHeader = sceneHeader;
 		mGameOptions = gameOptions;
 
-		final var lLayout = new ListLayout(this);
-		lLayout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
-		lLayout.setDrawBackground(true, ColorConstants.WHITE());
-		lLayout.showTitle(true);
-		lLayout.title("You love to see it!");
+		final var layout = new ListLayout(this);
+		layout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
+		layout.setDrawBackground(false, ColorConstants.WHITE());
+		layout.showTitle(true);
+		layout.title("You love to see it!");
 
-		final var lContinueEntry = new MenuEntry(screenManager, this, "Continue");
-		lContinueEntry.registerClickListener(this, SCREEN_BUTTON_CONTINUE);
+		// TODO: Next level
+		final var nextButton = new MenuEntry(screenManager, this, "Next");
+		nextButton.registerClickListener(this, SCREEN_BUTTON_NEXT);
+		nextButton.enabled(false);
 
-		final var lRestartEntry = new MenuEntry(screenManager, this, "Restart");
-		lRestartEntry.registerClickListener(this, SCREEN_BUTTON_RESTART);
+		final var restartButton = new MenuEntry(screenManager, this, "Restart");
+		restartButton.registerClickListener(this, SCREEN_BUTTON_RESTART);
 
-		final var lExitToMenuEntry = new MenuEntry(screenManager, this, "Exit");
-		lExitToMenuEntry.registerClickListener(this, SCREEN_BUTTON_EXIT);
+		final var exitToMenuButton = new MenuEntry(screenManager, this, "Exit");
+		exitToMenuButton.registerClickListener(this, SCREEN_BUTTON_EXIT);
 
-		lLayout.addMenuEntry(lContinueEntry);
-		lLayout.addMenuEntry(lRestartEntry);
-		lLayout.addMenuEntry(MenuEntry.menuSeparator());
-		lLayout.addMenuEntry(lExitToMenuEntry);
+		layout.addMenuEntry(nextButton);
+		layout.addMenuEntry(restartButton);
+		layout.addMenuEntry(MenuEntry.menuSeparator());
+		layout.addMenuEntry(exitToMenuButton);
 
-		mLayouts.add(lLayout);
+		mLayouts.add(layout);
 
 		mIsPopup = false;
 		mShowBackgroundScreens = true;
+		mESCBackEnabled = false;
 
 		mBlockGamepadInputInBackground = true;
 		mBlockKeyboardInputInBackground = true;
@@ -122,7 +125,7 @@ public class WonScreen extends MenuScreen {
 	@Override
 	protected void handleOnClick() {
 		switch (mClickAction.consume()) {
-		case SCREEN_BUTTON_CONTINUE:
+		case SCREEN_BUTTON_NEXT:
 			exitScreen();
 			return;
 

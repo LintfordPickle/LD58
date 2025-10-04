@@ -340,6 +340,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mGameOptions = options;
 		mGameState = new GameState();
 
+		mShowBackgroundScreens = true;
+
 		mScreenBuffer = new FullScreenBuffer(ConstantsGame.GAME_CANVAS_WIDTH, ConstantsGame.GAME_CANVAS_HEIGHT);
 
 		for (int i = 0; i < PROJECTILE_POOL_SIZE; i++) {
@@ -423,6 +425,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	public void update(LintfordCore core, boolean otherScreenHasFocus, boolean coveredByOtherScreen) {
 		super.update(core, otherScreenHasFocus, coveredByOtherScreen);
 
+		if (mGameState.hasGameEnded() || !mGameState.hasGameStarted())
+			return;
+
 		mPlayerX = getLaneOffsetX(mPlayerLane);
 		if (mPlayerHitCooldown > 0) {
 			mPlayerHitCooldown -= core.gameTime().elapsedTimeMilli();
@@ -448,6 +453,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		updatePlayerCollisions(core, playerSegment);
 
 		mPosition += mSpeed * core.gameTime().elapsedTimeMilli() * 0.001f;
+		mGameState.playerDistance(mPosition + mPlayerZ + mPlayerWorldZOffset);
 	}
 
 	private void updatePlayerCollisions(LintfordCore core, TrackSegment playerSegment) {
@@ -1046,12 +1052,12 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		addRoad(0, 30, 0, .5f, -testHillHeight / 4);
 		addRoad(10, 30, 10, -.6f, testHillHeight);
 		addRoad(10, 30, 10, .8f, -testHillHeight);
-		addRoad(10, 30, 10, -.3f, testHillHeight);
-		addRoad(30, 100, 0, -0.1f, -testHillHeight);
-		addRoad(30, 75, 0, .3f, -testHillHeight / 2);
-		addRoad(60, 50, 20, .3f, 0);
-		addRoad(0, 75, 0, .4f, testHillHeight * 2);
-		addRoad(0, 75, 0, 0, testHillHeight);
+//		addRoad(10, 30, 10, -.3f, testHillHeight);
+//		addRoad(30, 100, 0, -0.1f, -testHillHeight);
+//		addRoad(30, 75, 0, .3f, -testHillHeight / 2);
+//		addRoad(60, 50, 20, .3f, 0);
+//		addRoad(0, 75, 0, .4f, testHillHeight * 2);
+//		addRoad(0, 75, 0, 0, testHillHeight);
 
 		// TODO: Need to obstruct your path
 		addProp(PropDefinition.WALL, 100, 0);
@@ -1083,6 +1089,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 
 		mTrackLength = mTrackSegments.size() * mSegmentLength;
+		mGameState.startGame(mTrackLength);
 	}
 
 	private void addRoad(int enter, int hold, int leave, float curve, float height) {

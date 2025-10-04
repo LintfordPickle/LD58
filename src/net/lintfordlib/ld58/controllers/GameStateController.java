@@ -3,6 +3,7 @@ package net.lintfordlib.ld58.controllers;
 import net.lintfordlib.controllers.BaseController;
 import net.lintfordlib.controllers.ControllerManager;
 import net.lintfordlib.core.LintfordCore;
+import net.lintfordlib.core.debug.Debug;
 import net.lintfordlib.ld58.data.GameState;
 import net.lintfordlib.ld58.data.IGameStateListener;
 
@@ -61,12 +62,22 @@ public class GameStateController extends BaseController {
 			return;
 
 		// Check for lose conditions
-		if (mGameState.lives() <= 0) {
+		if (mGameState.health() <= 0) {
+
+			Debug.debugManager().logger().w(GameStateController.class.getSimpleName(), "Game lost state initiated");
+
+			mGameState.endGame();
 			mGameStateListener.onGameLost();
+			return;
 		}
 
-		// TODO: Check for win conditions
-		// mGameStateListener.onGameWon();
+		if (mGameState.playerDistance() >= mGameState.trackLength()) {
 
+			Debug.debugManager().logger().w(GameStateController.class.getSimpleName(), "Game wonstate initiated");
+
+			mGameState.endGame();
+			mGameStateListener.onGameWon();
+			return;
+		}
 	}
 }
