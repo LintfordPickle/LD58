@@ -11,7 +11,6 @@ import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.sprites.spritesheet.SpriteSheetDefinition;
 import net.lintfordlib.core.graphics.textures.FullScreenBuffer;
 import net.lintfordlib.core.graphics.textures.FullScreenBuffer.DepthMode;
-import net.lintfordlib.core.graphics.textures.FullScreenBuffer.StencilMode;
 import net.lintfordlib.core.graphics.textures.Texture;
 import net.lintfordlib.core.maths.CollisionExtensions;
 import net.lintfordlib.core.maths.InterpolationHelper;
@@ -36,6 +35,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 	public static final int TEAM_PLAYER_UID = 0;
 	public static final int TEAM_ENEMY_UID = 1;
+
+	public static final int NUM_LANES = 4;
 
 	public static class PropDefinition {
 
@@ -251,6 +252,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		public boolean isClipped;
 		public float clipSpaceY;
 
+		public final boolean[] laneFill = new boolean[NUM_LANES];
+
 		public int variation;
 
 		public final TrackPoint p0 = new TrackPoint(); // closest
@@ -272,6 +275,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			p1.world.y = endHeight;
 			p1.world.z = (index + 1) * mSegmentLength;
 
+			for (int i = 0; i < NUM_LANES; i++) {
+				laneFill[i] = true; // default all filled
+			}
 		}
 	}
 
@@ -311,12 +317,14 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	public final int mSegmentLength = 10;
 	public final int mRumbleLength = 2;
 	private float mTrackLength; // computed
-	private int mNumLanes = 4;
 	private float mRoadWidth = 300;
 
 	private int mDrawDistance = 50; // number of segments to draw
 	private int mPlayerLane;
 	private float mPlayerX; // player offset from center on X axis
+	private float mPlayerY; // altitude
+	private float mPlayerYAcc;
+	private float mPlayerYVel;
 	private float mPlayerZ; // (computed) player relative z distance from camera
 	private float mPlayerWorldZOffset = 20;
 
@@ -391,16 +399,20 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			return;
 		}
 
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_PRIMARY_FIRE)) {
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_FIRE)) {
 			addProjectile(mPlayerX, mPosition + mPlayerZ + mPlayerWorldZOffset + 10, 0, 1, 2000);
 		}
 
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_PRIMARY_LEFT)) {
-			mPlayerLane = MathHelper.clampi(--mPlayerLane, 0, mNumLanes - 1);
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_JUMP)) {
+			updatePlayerJump(core);
 		}
 
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_PRIMARY_RIGHT)) {
-			mPlayerLane = MathHelper.clampi(++mPlayerLane, 0, mNumLanes - 1);
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_LEFT)) {
+			mPlayerLane = MathHelper.clampi(--mPlayerLane, 0, NUM_LANES - 1);
+		}
+
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_RIGHT)) {
+			mPlayerLane = MathHelper.clampi(++mPlayerLane, 0, NUM_LANES - 1);
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_FORWARD)) {
@@ -420,6 +432,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 
 	}
+
+	// UPDATE
 
 	@Override
 	public void update(LintfordCore core, boolean otherScreenHasFocus, boolean coveredByOtherScreen) {
@@ -444,16 +458,74 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			}
 		}
 
-		// TODO: remove entities/projectiles/props from lists needs making safe (update list)
-
-		var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset + 1);
+		var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
 		updateEntities(core);
 		updateProps(core);
 		updateProjectiles(core, playerSegment);
+		updatePlayerAltitude(core, playerSegment);
 		updatePlayerCollisions(core, playerSegment);
 
 		mPosition += mSpeed * core.gameTime().elapsedTimeMilli() * 0.001f;
 		mGameState.playerDistance(mPosition + mPlayerZ + mPlayerWorldZOffset);
+	}
+
+	private void updatePlayerAltitude(LintfordCore core, TrackSegment playerSegment) {
+
+		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
+		final var segmentHeight = InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
+
+		// target segHeight + 10 ?
+		// mPlayerY = segmentHeight + 0;
+
+		final var dt = core.gameTime().elapsedTimeMilli() * 0.001f;
+		final var k = 0.5f;
+
+		final var isFloored = playerSegment.laneFill[mPlayerLane];
+		var G = 9.87f;
+		if (isFloored) {
+			final var desiredAltitude = segmentHeight + 15;
+			final var relativeAltitude = desiredAltitude - mPlayerY;
+			mPlayerYAcc += relativeAltitude * k;
+
+			if (mPlayerY < segmentHeight) {
+				mPlayerY = segmentHeight + 1.f;
+				mPlayerYAcc += relativeAltitude * .5f;
+			}
+
+		} else {
+			// no floor ?
+			G = 500.f;
+			mSpeed *= 0.95f;
+		}
+
+		mPlayerYVel -= G * dt; // gravity
+		mPlayerYVel += mPlayerYAcc;
+
+		mPlayerY += mPlayerYVel * dt;
+
+		mPlayerYAcc = 0;
+		mPlayerYVel *= 0.98f;
+
+		// System.out.printf("player:%.1f (%.1f)%n", mPlayerY, segmentHeight);
+
+		if (!isFloored && mPlayerY < segmentHeight - 5.f) {
+			System.out.println("You Dead!");
+		}
+
+	}
+
+	private void updatePlayerJump(LintfordCore core) {
+		final var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
+		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
+		final var segmentHeight = InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
+
+		final var isFloored = playerSegment.laneFill[mPlayerLane];
+		final var isOnFloor = mPlayerY - segmentHeight - 15 < 10.0f;
+
+		if (isFloored && isOnFloor) {
+			mPlayerYAcc += 400.0f;
+		}
+
 	}
 
 	private void updatePlayerCollisions(LintfordCore core, TrackSegment playerSegment) {
@@ -665,7 +737,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		return scale * ConstantsGame.GAME_CANVAS_WIDTH / 2;
 	}
 
-	// ---
+	// --- DRAW
 
 	@Override
 	public void draw(LintfordCore core) {
@@ -740,12 +812,11 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 			if (isBehindUs || isOccluded)
 				continue;
+
 			var drawLanes = (segment.p1.screen.y > maxY);
 
-			// render the track segment
-			drawSegment(segment, (int) canvasWidth, mNumLanes, drawLanes);
+			drawSegment(segment, (int) canvasWidth, NUM_LANES, drawLanes);
 
-			// Track the top of this segment
 			maxY = segment.p1.screen.y;
 		}
 
@@ -760,26 +831,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var r0 = p0.screen.z / 30.0f;
 		final var r1 = p1.screen.z / 30.0f;
 
-		// mScreenBuffer.drawRect(0, (int) p1.screen.y, canvasWidth, (int) (p1.screen.y - p0.screen.y) + 1, 0xff00ff00, true);
-
-		final var wallHeight = 60;
-		
-		mScreenBuffer.mStencilEnabled = !drawLanes;
-		mScreenBuffer.mStencilMode = StencilMode.LessEqual;
-		mScreenBuffer.mStencilValue = 2;
-		mScreenBuffer.writeOnceLock = false;
-		
-		// road
-		mScreenBuffer.drawPolygon(
-				(int)(p0.screen.x - p0.screen.z), (int)p0.screen.y, 
-				(int)(p0.screen.x + p0.screen.z), (int)p0.screen.y, 
-				(int)(p1.screen.x + p1.screen.z), (int)p1.screen.y, 
-				(int)(p1.screen.x - p1.screen.z), (int)p1.screen.y, 
-				p0.world.z,
-				segment.variation == 0 ? 0xffa4bfaf : 0xffa4bfef, true);
-		
-		mScreenBuffer.writeOnceLock = true;
-		
+		// Animated projection
 //		final var srcBuffer = mArrowTexture.ARGBColorData();
 //		mScreenBuffer.drawTexturedPolygon(
 //				srcBuffer, mArrowTexture.getTextureWidth(), mArrowTexture.getTextureHeight(), 
@@ -788,12 +840,16 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 //				(int)(p1.screen.x + p1.screen.z), (int)p1.screen.y, 
 //				(int)(p1.screen.x - 1 - p1.screen.z), (int)p1.screen.y, 
 //				0, 0xffffffff);
+		
+		mScreenBuffer.writeOnceLock = true;
+		
+		final var lineZ0 = p0.screenScale * canvasWidth / 2;
+		final var lineZ1 = p1.screenScale * canvasWidth / 2;
 
-		mScreenBuffer.mStencilEnabled = true;
-		mScreenBuffer.mStencilMode = StencilMode.LessEqual;
-		mScreenBuffer.mStencilValue = 2;
-
-		// rumble left
+		final var laneWidth = 2;
+		
+		// wall left
+		final var wallHeight = 60;
 		mScreenBuffer.drawPolygon(
 				(int) (p0.screen.x - p0.screen.z), 		(int) p0.screen.y, 
 				(int) (p0.screen.x - p0.screen.z - r0), (int) (p0.screen.y + wallHeight * p0.screenScale * 240), 
@@ -801,7 +857,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				(int) (p1.screen.x - p1.screen.z),		(int) p1.screen.y, 
 				p0.world.z, 0xffcc0419, true);
 
-		// rumble right
+		// wall right
 		mScreenBuffer.drawPolygon(
 				(int) (p0.screen.x + p0.screen.z + 1), 		(int) (p0.screen.y), 
 				(int) (p0.screen.x + p0.screen.z + r0), (int) (p0.screen.y + wallHeight/2 * p0.screenScale * 240), 
@@ -809,46 +865,53 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				(int) (p1.screen.x + p1.screen.z + 1), 		(int) (p1.screen.y), 
 				p0.world.z, 0x55cc0419, true);
 
+
+		// road
+		var lanes = NUM_LANES - 1;
+		for (int i = 0; i < NUM_LANES; i++)  {
+			
+			if(!segment.laneFill[i])
+				continue;
+			
+			final var lineStepX = i * mRoadWidth / (lanes + 1);
+			final var lx0 = p0.screen.x - p0.screen.z + lineStepX * p0.screenScale * canvasWidth / 2;
+			final var lx1 = p1.screen.x - p1.screen.z + lineStepX * p1.screenScale * canvasWidth / 2;
+			
+			final var blockWidth0 = (mRoadWidth / 4) * p0.screenScale * canvasWidth / 2;
+			final var blockWidth1 = (mRoadWidth / 4) * p1.screenScale * canvasWidth / 2;
+			
+			mScreenBuffer.drawPolygon(
+					(int)(lx0), (int)p0.screen.y, 
+					(int)(lx0 + blockWidth0), (int)p0.screen.y, 
+					(int)(lx1 + blockWidth1), (int)p1.screen.y, 
+					(int)(lx1), (int)p1.screen.y, 
+					p0.world.z,
+					segment.variation == 0 ? 0xffa4bfaf : 0xffa4bfef, true);
+		}
+					
 		// Lanes
 		if (drawLanes) {
 			mScreenBuffer.mDepthMode = DepthMode.Equal;
-			mScreenBuffer.mStencilEnabled = true;
-			mScreenBuffer.writeOnceLock = false; //
-
-			// only render walls where tracks have not already been rendered
-			mScreenBuffer.mStencilMode = StencilMode.LessEqual; 
-			mScreenBuffer.mStencilValue = 1;
-
-			final var lineZ0 = p0.screenScale * canvasWidth / 2;
-			final var lineZ1 = p1.screenScale * canvasWidth / 2;
-
-			final var laneWidth = 2;
-
-			if (mNumLanes <= 1)
-				return;
-
-			var lanes1 = mNumLanes - 1;
-			for (int i = 0; i < lanes1; i++) {
-
-				final var lineStepX = (i + 1) * mRoadWidth / (lanes1 + 1);
+			mScreenBuffer.writeOnceLock = false;
+			
+			for (int i = 0; i < lanes; i++) {
+				
+				final var lineStepX = (i + 1) * mRoadWidth / (lanes + 1);
 				final var lx0 = p0.screen.x - p0.screen.z + lineStepX * p0.screenScale * canvasWidth / 2;
 				final var lx1 = p1.screen.x - p1.screen.z + lineStepX * p1.screenScale * canvasWidth / 2;
-
-				// if (segment.rumbleColor == 0) {
+				
 				mScreenBuffer.drawPolygon(
 						(int) (lx0 - laneWidth * lineZ0), (int) p0.screen.y, 
 						(int) (lx0 + laneWidth * lineZ0), (int) p0.screen.y, 
 						(int) (lx1 + laneWidth * lineZ1), (int) p1.screen.y, 
 						(int) (lx1 - laneWidth * lineZ1), (int) p1.screen.y, 
 						p0.world.z, 0xff2f4f4f, true);
-				// }
 			}
-			mScreenBuffer.mStencilEnabled = true;
-			mScreenBuffer.writeOnceLock = true;
+			
 			mScreenBuffer.mDepthMode = DepthMode.Less;
+			
 		}
 
-		mScreenBuffer.mStencilEnabled = false;
 
 		// @formatter:on
 	}
@@ -858,32 +921,52 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
 		final var playerPercent = ((mPosition + mPlayerZ) % mSegmentLength) / mSegmentLength;
 		final var scale = InterpolationHelper.lerp(playerSegment.p0.screenScale, playerSegment.p1.screenScale, playerPercent);
-
 		final var segmentCurvature = InterpolationHelper.lerp(playerSegment.p0.curvature, playerSegment.p1.curvature, playerPercent);
-		final var segmentHeight = InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
-
 		final var playerFrame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.PLAYER_MID);
 
 		final var playerW = (int) (playerFrame.width() * scale * ConstantsGame.GAME_CANVAS_WIDTH / 2);
 		final var playerH = (int) (playerFrame.height() * scale * ConstantsGame.GAME_CANVAS_HEIGHT / 2);
 		final var playerX = (int) (mPlayerX + segmentCurvature) + (ConstantsGame.GAME_CANVAS_WIDTH / 2 - playerW / 2);
-		final var playerY = (int) segmentHeight + 10;
+		final var playerY = (int) mPlayerY;
 		final var playerZ = playerSegment.p0.world.z - 10; // cheat a little
 
 		final var texture = mGameSpriteSheet.texture();
 
-		final var srcX = (int) playerFrame.x();
-		final var srcY = (int) (texture.getTextureHeight() - playerFrame.height());
+		{
 
-		int col = 0xffafafaf;
-		if (mPlayerHitCooldown > 0 && mPlayerHitFlash) {
-			col = 0xffffffff;
+			final var srcX = (int) playerFrame.x();
+			final var srcY = (int) playerFrame.y();
+			final var srcW = (int) playerFrame.width();
+			final var srcH = (int) playerFrame.height();
+
+			int col = 0xffafafaf;
+			if (mPlayerHitCooldown > 0 && mPlayerHitFlash) {
+				col = 0xffffffff;
+			}
+
+			mScreenBuffer.copyPixelsAtlas(texture.ARGBColorData(), // Src pixels
+					srcX, srcY, srcW, srcH, texture.getTextureWidth(), // src rect
+					playerX, playerY, playerW, playerH, // dest rect
+					playerZ, col, false);
 		}
 
-		mScreenBuffer.copyPixelsAtlas(texture.ARGBColorData(), // Src pixels
-				srcX, srcY, (int) playerFrame.width(), (int) playerFrame.height(), texture.getTextureWidth(), // src rect
-				playerX, playerY, playerW, playerH, // dest rect
-				playerZ, col, false);
+		{
+			final var shadowFrame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.OBJECT_SHADOW);
+
+			final var srcX = (int) shadowFrame.x();
+			final var srcY = (int) shadowFrame.y();
+			final var srcW = (int) shadowFrame.width();
+			final var srcH = (int) shadowFrame.height();
+
+			final var floorHeight = (int) InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
+
+			final var shadowScale = InterpolationHelper.lerp(1.5f, 0.15f, mPlayerY / (floorHeight + 100));
+
+			mScreenBuffer.copyPixelsAtlas(texture.ARGBColorData(), // Src pixels
+					srcX, srcY, srcW, srcH, texture.getTextureWidth(), // src rect
+					(int) (playerX + 32 * (1 - shadowScale) / 2), floorHeight, (int) (playerW * shadowScale), (int) (srcH * shadowScale), // dest rect
+					playerZ, 0xffffffff, false);
+		}
 
 	}
 
@@ -913,15 +996,34 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				final var destX = segment.p0.screen.x + ((prop.xOffset) * scale * mRoadWidth * ConstantsGame.GAME_CANVAS_WIDTH / 2) - destW / 2;
 				final var destY = segment.p0.screen.y + 10;
 
-				int srcX = (int) spriteFrame.x();
-				int srcY = (int) (spriteFrame.y());
-				int srcW = (int) spriteFrame.width();
-				int srcH = (int) spriteFrame.height();
+				{
+					int srcX = (int) spriteFrame.x();
+					int srcY = (int) (spriteFrame.y());
+					int srcW = (int) spriteFrame.width();
+					int srcH = (int) spriteFrame.height();
 
-				mScreenBuffer.copyPixelsAtlas(srcPixels, // Src pixels
-						srcX, srcY, srcW, srcH, textureWidth, // src rect
-						(int) destX, (int) destY, (int) destW, (int) destH, // dest rect
-						entityZ, 0xffcfcfcf, false);
+					mScreenBuffer.copyPixelsAtlas(srcPixels, // Src pixels
+							srcX, srcY, srcW, srcH, textureWidth, // src rect
+							(int) destX, (int) destY, (int) destW, (int) destH, // dest rect
+							entityZ, 0xffcfcfcf, false);
+				}
+
+				{
+					final var shadowFrame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.OBJECT_SHADOW);
+
+					final var srcX = (int) shadowFrame.x();
+					final var srcY = (int) shadowFrame.y();
+					final var srcW = (int) shadowFrame.width();
+					final var srcH = (int) shadowFrame.height();
+
+					final var floorHeight = (int) InterpolationHelper.lerp(segment.p0.screen.y, segment.p1.screen.y, .5f);
+					final var shadowScale = 1.f;
+
+					mScreenBuffer.copyPixelsAtlas(texture.ARGBColorData(), // Src pixels
+							srcX, srcY, srcW, srcH, texture.getTextureWidth(), // src rect
+							(int) (destX), floorHeight, (int) (destW * shadowScale), (int) (srcH * .5f), // dest rect
+							entityZ, 0xffffffff, false);
+				}
 
 			}
 		}
@@ -955,15 +1057,34 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				final var destX = segment.p0.screen.x + ((entity.xOffset) * scale * mRoadWidth * ConstantsGame.GAME_CANVAS_WIDTH / 2) - destW / 2;
 				final var destY = segment.p0.screen.y + 10;
 
-				int srcX = (int) spriteFrame.x();
-				int srcY = (int) (spriteFrame.y());
-				int srcW = (int) spriteFrame.width();
-				int srcH = (int) spriteFrame.height();
+				{
+					int srcX = (int) spriteFrame.x();
+					int srcY = (int) (spriteFrame.y());
+					int srcW = (int) spriteFrame.width();
+					int srcH = (int) spriteFrame.height();
 
-				mScreenBuffer.copyPixelsAtlas(srcPixels, // Src pixels
-						srcX, srcY, srcW, srcH, textureWidth, // src rect
-						(int) destX, (int) destY, (int) destW, (int) destH, // dest rect
-						entityZ, 0xffcfcfcf, false);
+					mScreenBuffer.copyPixelsAtlas(srcPixels, // Src pixels
+							srcX, srcY, srcW, srcH, textureWidth, // src rect
+							(int) destX, (int) destY, (int) destW, (int) destH, // dest rect
+							entityZ, 0xffcfcfcf, false);
+				}
+
+				{
+					final var shadowFrame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.OBJECT_SHADOW);
+
+					final var srcX = (int) shadowFrame.x();
+					final var srcY = (int) shadowFrame.y();
+					final var srcW = (int) shadowFrame.width();
+					final var srcH = (int) shadowFrame.height();
+
+					final var floorHeight = (int) InterpolationHelper.lerp(segment.p0.screen.y, segment.p1.screen.y, .5f);
+					final var shadowScale = 1.f;
+
+					mScreenBuffer.copyPixelsAtlas(texture.ARGBColorData(), // Src pixels
+							srcX, srcY, srcW, srcH, texture.getTextureWidth(), // src rect
+							(int) (destX), floorHeight, (int) (destW * shadowScale), (int) (srcH * .5f), // dest rect
+							entityZ, 0xffffffff, false);
+				}
 
 			}
 		}
@@ -1059,6 +1180,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 //		addRoad(0, 75, 0, .4f, testHillHeight * 2);
 //		addRoad(0, 75, 0, 0, testHillHeight);
 
+		digOutSegments(20, 25, 3);
+
 		// TODO: Need to obstruct your path
 		addProp(PropDefinition.WALL, 100, 0);
 		addProp(PropDefinition.WALL, 100, 1);
@@ -1125,6 +1248,20 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 	}
 
+	private void digOutSegments(int startSegId, int endSegId, int lane) {
+		if (startSegId > endSegId || endSegId < 0)
+			return;
+
+		if (lane < 0 || lane >= NUM_LANES)
+			return;
+
+		for (int i = startSegId; i < endSegId; i++) {
+			final var segment = getSegment(i);
+			segment.laneFill[lane] = false;
+		}
+
+	}
+
 	private void addProp(PropDefinition def, int segmentUid, int laneNum) {
 		final var newProp = new TrackProp(def, getLaneOffsetX(laneNum));
 		final var segment = getSegment(segmentUid);
@@ -1174,10 +1311,10 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	}
 
 	private float getLaneOffsetX(int lane) {
-		lane = MathHelper.clampi(lane, 0, mNumLanes);
+		lane = MathHelper.clampi(lane, 0, NUM_LANES);
 
-		final var laneI = 1.f / (mNumLanes * 2);
-		final var laneS = 1.f / (mNumLanes);
+		final var laneI = 1.f / (NUM_LANES * 2);
+		final var laneS = 1.f / (NUM_LANES);
 
 		return -0.5f + laneI + laneS * lane;
 	}

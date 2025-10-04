@@ -55,6 +55,19 @@
       "anchorPoints": []
     },
     {
+      "name": "OBJECT_SHADOW",
+      "x": 18,
+      "y": 0,
+      "w": 48,
+      "h": 16,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    },
+    {
       "name": "BULLET",
       "x": 0,
       "y": 0,
