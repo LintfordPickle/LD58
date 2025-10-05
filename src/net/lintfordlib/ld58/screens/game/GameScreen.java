@@ -28,17 +28,20 @@ import net.lintfordlib.ld58.data.GameOptions;
 import net.lintfordlib.ld58.data.GameState;
 import net.lintfordlib.ld58.data.GameTextureNames;
 import net.lintfordlib.ld58.data.IGameStateListener;
+import net.lintfordlib.ld58.data.IResetLevel;
 import net.lintfordlib.ld58.renderers.HudRenderer;
 import net.lintfordlib.renderers.SimpleRendererManager;
 import net.lintfordlib.screenmanager.ScreenManager;
 import net.lintfordlib.screenmanager.screens.BaseGameScreen;
 
-public class GameScreen extends BaseGameScreen implements IGameStateListener {
+public class GameScreen extends BaseGameScreen implements IGameStateListener, IResetLevel {
 
 	public static final float JUMP_ALT_POWER = 100;
 
 	public static final float HIT_FLASH_TIME = 50;
 	public static final float HIT_COOLDOWN_TIME = 300;
+
+	public static final float JUMP_COOLDOWN_TIME = 300;
 
 	public static final int NUM_LANES = 4;
 
@@ -368,6 +371,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	private float mPlayerX; // player offset from center on X axis
 	private float mPlayerAltitude; // altitude
 	private float mPlayerYAcc;
+	private float mPlayerJumpCooldown;
 	private float mPlayerYVel;
 	private float mPlayerY;
 	private float mPlayerZ; // (computed) player relative z distance from camera
@@ -531,14 +535,18 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mSkyTime += dt * 1000 * 10;
 		mSkyTint = getSkyTint();
 
+		if (mPlayerJumpCooldown > 0) {
+			mPlayerJumpCooldown -= (float) core.gameTime().elapsedTimeMilli();
+		}
+
 		if (mPlayerHitCooldown > 0) {
-			mPlayerHitCooldown -= core.gameTime().elapsedTimeMilli();
+			mPlayerHitCooldown -= (float) core.gameTime().elapsedTimeMilli();
 			if (mPlayerHitCooldown < 0)
 				mPlayerHitCooldown = 0;
 		}
 
 		if (mPlayerHitFlashTimer > 0) {
-			mPlayerHitFlashTimer -= core.gameTime().elapsedTimeMilli();
+			mPlayerHitFlashTimer -= (float) core.gameTime().elapsedTimeMilli();
 
 			if (mPlayerHitFlashTimer < 0) {
 				mPlayerHitFlash = !mPlayerHitFlash;
@@ -591,7 +599,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var relYawHeight = (cameraTargetH - floorHeight);
 		final var maxYawAmt = -MathHelper.clamp(-relYawHeight / maxYawHeight, -1.f, 1.f);
 
-		final var cameraBaseHeight = 200;
+		final var cameraBaseHeight = 160;
 		final var cameraPitchExtent = 150;
 		final var maxPitchExtent = .25f;
 
@@ -693,9 +701,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			}
 
 		} else {
-			// no floor ?
+			// no floor
 			G = 500.f;
-			// mSpeed *= 0.95f;
 		}
 
 		mPlayerYVel -= G * dt; // gravity
@@ -713,6 +720,12 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	}
 
 	private void updatePlayerJump(LintfordCore core) {
+
+		if (mPlayerJumpCooldown > 0)
+			return;
+
+		mPlayerJumpCooldown = JUMP_COOLDOWN_TIME;
+
 		final var playerSegment = findSegment(mPosition + mPlayerZ);
 		final var playerPercent = ((mPosition + mPlayerZ) % mSegmentLength) / mSegmentLength;
 		final var segmentHeight = InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
@@ -721,7 +734,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var isOnFloor = mPlayerAltitude - segmentHeight - 15 < 10.0f;
 
 		if (isFloored && isOnFloor) {
-			mPlayerYAcc += JUMP_ALT_POWER;
+			mPlayerYVel = JUMP_ALT_POWER; // Apply directly to velocity, not acceleration
 		}
 
 	}
@@ -1159,8 +1172,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var r0 = p0.screen.z / 30.0f;
 		final var r1 = p1.screen.z / 30.0f;
 		
-		final var fog_md = mDrawDistance * mSegmentLength / 2;
-		final var fog_d = mPosition + mPlayerZ + fog_md;
+		final var fog_md = (int)(mDrawDistance * mSegmentLength * .7f);
+		final var fog_d = mPosition + mPlayerZ + fog_md * .25f;
 
 		// Animated projection
 //		final var srcBuffer = mArrowTexture.ARGBColorData();
@@ -1179,6 +1192,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 		final var laneWidth = 2;
 		
+		// purple: 0xaa282141
+		// orange: 0xc16a3a
+		
 		// wall left
 		final var wallHeight = 60;
 		mScreenBuffer.drawPolygon(
@@ -1186,7 +1202,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				(int) (p0.screen.x - p0.screen.z - r0), (int) (p0.screen.y + wallHeight * p0.screenScale * 240), 
 				(int) (p1.screen.x - p1.screen.z - r1), (int) (p1.screen.y + wallHeight * p1.screenScale * 240), 
 				(int) (p1.screen.x - p1.screen.z),		(int) p1.screen.y, 
-				p0.world.z, applyFog((int)(p0.world.z - fog_d), fog_md, 0xffcc0419, 0x00ffffff), true);
+				p0.world.z, applyFog((int)(p0.world.z - fog_d), fog_md, 0xaa282141, 0x00ffffff), true);
 
 		// wall right
 		mScreenBuffer.drawPolygon(
@@ -1194,7 +1210,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				(int) (p0.screen.x + p0.screen.z + r0), (int) (p0.screen.y + wallHeight/2 * p0.screenScale * 240), 
 				(int) (p1.screen.x + p1.screen.z + r1), (int) (p1.screen.y + wallHeight/2 * p1.screenScale * 240),
 				(int) (p1.screen.x + p1.screen.z + 1), 		(int) (p1.screen.y), 
-				p0.world.z, applyFog((int)(p0.world.z - fog_d), fog_md, 0x55cc0419, 0x00ffffff), true);
+				p0.world.z, applyFog((int)(p0.world.z - fog_d), fog_md, 0xaac16a3a, 0x00ffffff), true);
 		
 		// road
 		var lanes = NUM_LANES - 1;
@@ -1237,7 +1253,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 						(int) (lx0 + laneWidth * lineZ0), (int) p0.screen.y, 
 						(int) (lx1 + laneWidth * lineZ1), (int) p1.screen.y, 
 						(int) (lx1 - laneWidth * lineZ1), (int) p1.screen.y, 
-						p0.world.z, 0xff2f4f4f, true);
+						p0.world.z, 0x552f4f4f, true);
 			}
 			
 			mScreenBuffer.mDepthMode = DepthMode.Less;
@@ -1266,7 +1282,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var playerH = (int) (playerFrame.height() * scale * ConstantsGame.GAME_CANVAS_HEIGHT / 2);
 		final var playerX = (int) (0 + segmentCurvature) + (ConstantsGame.GAME_CANVAS_WIDTH / 2 - playerW / 2);
 		final var playerY = (int) mPlayerAltitude;
-		final var playerZ = playerSegment.p0.world.z - 10; // cheat a little
+		final var playerZ = playerSegment.p0.world.z - 20; // cheat a little
 
 		final var texture = mGameSpriteSheet.texture();
 
@@ -1671,7 +1687,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 	@Override
 	public void onGameLost() {
-		screenManager.addScreen(new LostScreen(screenManager, mSceneHeader, mGameOptions));
+		screenManager.addScreen(new LostScreen(screenManager, mSceneHeader, mGameOptions, this));
 	}
 
 	// LEVELS --------------------------------------
@@ -1699,8 +1715,14 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		finalizeBuild();
 	}
 
+	private static final int mDebugStartOnSegmentId = 0;
+
 	private void finalizeBuild() {
-		mPosition = 0 * mSegmentLength;
+		if (ConstantsGame.IS_DEBUG_MODE) {
+			mPosition = mDebugStartOnSegmentId * mSegmentLength;
+		} else {
+			mPosition = 0;
+		}
 
 		final var numSegments = mTrackSegments.size();
 		for (int i = 0; i < numSegments; i++) {
@@ -1790,8 +1812,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	}
 
 	private void setupWorld_0() {
-		mMinLevelSpeed = 150;
-		mMaxSpeed = 250;
+		mMinLevelSpeed = 100;
+		mMaxSpeed = 150;
 
 		// @formatter:off
 		final var testHillHeight = 60;
@@ -1827,6 +1849,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		digOutSegments(113, 4, 1);
 		digOutSegments(113, 4, 2);
 
+		digOutSegments(139, 4, 3);
+
 		addProp(PropDefinition.WALL, 100, 0);
 		addProp(PropDefinition.WALL, 100, 1);
 
@@ -1848,8 +1872,86 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		addEntity(EntityDefinition.NORMAL, 130, 3);
 		addEntity(EntityDefinition.BLOCKER_SHOOTER, 145, 0);
 		addEntity(EntityDefinition.BLOCKER_SHOOTER, 145, 1);
+
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 157, 2);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 157, 3);
+
+		digOutSegments(159, 10, 1);
+		digOutSegments(164, 3, 0);
+
+		addEntity(EntityDefinition.NORMAL, 185, 1);
+		addEntity(EntityDefinition.NORMAL, 185, 2);
+		
+		addProp(PropDefinition.COIN, 200, 2);
+		addProp(PropDefinition.COIN, 198, 3);
+		
+		addProp(PropDefinition.WALL, 195, 0);
+		addProp(PropDefinition.WALL, 195, 1);
+		
+
+		digOutSegments(222, 3, 0);
+		digOutSegments(222, 3, 1);
+
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 222, 2);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 222, 3);
+
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 235, 2);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 235, 3);
+		
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 282, 0);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 282, 3);
+		
+		addEntity(EntityDefinition.NORMAL, 289, 1);
+		addEntity(EntityDefinition.NORMAL, 289, 2);
+
+		digOutSegments(232, 2, 0);
+		digOutSegments(232, 2, 1);
+		digOutSegments(232, 2, 2);
+		digOutSegments(232, 2, 3);
+
+		digOutSegments(238, 2, 0);
+		digOutSegments(238, 2, 1);
+		digOutSegments(238, 2, 2);
+		digOutSegments(238, 2, 3);
+
+		digOutSegments(244, 2, 0);
+		digOutSegments(244, 2, 1);
+		digOutSegments(244, 2, 2);
+		digOutSegments(244, 2, 3);
+		
+		digOutSegments(252, 2, 0);
+		digOutSegments(250, 2, 1);
+		digOutSegments(250, 2, 2);
+		digOutSegments(252, 2, 3);
+		
+		digOutSegments(260, 4, 0);
+		digOutSegments(260, 2, 1);
+		digOutSegments(260, 2, 2);
+		digOutSegments(260, 4, 3);
+		
+//		digOutSegments(260, 4, 0);
+		digOutSegments(266, 2, 1);
+		digOutSegments(266, 2, 2);
+//		digOutSegments(260, 4, 3);
+		
+		
+
+		addProp(PropDefinition.COIN, 155, 0);
+		addProp(PropDefinition.COIN, 156, 0);
+		addProp(PropDefinition.COIN, 157, 0);
+		addProp(PropDefinition.COIN, 158, 0);
+		addProp(PropDefinition.COIN, 159, 0);
+		addProp(PropDefinition.COIN, 160, 0);
+
 //		addEntity(EntityDefinition.SHOOTER, 110, 3);
 		addEntity(EntityDefinition.NORMAL, 150, 3);
 
+	}
+
+	@Override
+	public void resetLevel() {
+		// this lets us reset the level faster than reloading this class instance
+		reset();
+		buildLevel(mGameOptions.levelNumber);
 	}
 }

@@ -43,7 +43,7 @@ public class HudRenderer extends BaseRenderer {
 		super(rendererManager, RENDERER_NAME, entityGroupUid);
 
 		mCharAtlasRenderer = new CharAtlasRenderer();
-
+		mCharAtlasRenderer.setCharacterSequence("0123456789:.,/");
 	}
 
 	// --------------------------------------
@@ -120,12 +120,13 @@ public class HudRenderer extends BaseRenderer {
 
 		// Distance
 		final var distTotal = gameState.trackLength();
-		final var distTotalWidth = String.valueOf((int) distTotal).length() * 16 * .3f;
-		mCharAtlasRenderer.drawNumber(textureBatch, (int) distTotal, hudBounds.centerX() + 160 - 10 - distTotalWidth, hudBounds.top() + 20, 0.3f, .3f);
+		final var distString = "/" + String.valueOf((int) distTotal);
+		final var distTotalWidth = distString.length() * 16 * .3f;
+		mCharAtlasRenderer.drawNumberAN(textureBatch, distString, hudBounds.centerX() + 160 - 10 - distTotalWidth, hudBounds.top() + 20, 0.3f, .3f);
 
 		final var distTravelled = gameState.playerDistance();
 		final var distTravelledWidth = String.valueOf((int) distTravelled).length() * 16 * .8f;
-		mCharAtlasRenderer.drawNumber(textureBatch, (int) distTravelled, hudBounds.centerX() + 160 - 20 - distTravelledWidth - distTotalWidth, hudBounds.top() + 12, 0.3f, .8f);
+		mCharAtlasRenderer.drawNumber(textureBatch, (int) distTravelled, hudBounds.centerX() + 160 - 10 - distTravelledWidth - distTotalWidth, hudBounds.top() + 12, 0.3f, .8f);
 
 		// Score
 		final var score = gameState.getScore();

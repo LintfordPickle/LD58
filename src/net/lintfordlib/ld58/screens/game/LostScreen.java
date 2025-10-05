@@ -4,6 +4,7 @@ import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.ColorConstants;
 import net.lintfordlib.data.scene.SceneHeader;
 import net.lintfordlib.ld58.data.GameOptions;
+import net.lintfordlib.ld58.data.IResetLevel;
 import net.lintfordlib.ld58.screens.MainMenu;
 import net.lintfordlib.ld58.screens.menu.CreditsScreen;
 import net.lintfordlib.screenmanager.MenuEntry;
@@ -31,16 +32,18 @@ public class LostScreen extends MenuScreen {
 
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
+	private IResetLevel mLevelResetter;
 
 	// --------------------------------------
 	// Constructor
 	// --------------------------------------
 
-	public LostScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions) {
+	public LostScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions, IResetLevel levelResetter) {
 		super(screenManager, null);
 
 		mSceneHeader = sceneHeader;
 		mGameOptions = gameOptions;
+		mLevelResetter = levelResetter;
 
 		final var lLayout = new ListLayout(this);
 		lLayout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
@@ -65,7 +68,7 @@ public class LostScreen extends MenuScreen {
 
 		mIsPopup = false;
 		mShowBackgroundScreens = true;
-		mESCBackEnabled = false;
+		mESCBackEnabled = true;
 
 		mBlockGamepadInputInBackground = true;
 		mBlockKeyboardInputInBackground = true;
@@ -94,6 +97,16 @@ public class LostScreen extends MenuScreen {
 
 	}
 
+	@Override
+	protected void onEscPressed() {
+		super.onEscPressed();
+
+		if (mLevelResetter != null) {
+			mLevelResetter.resetLevel();
+			exitScreen();
+		}
+	}
+
 	// --------------------------------------
 	// Methods
 	// --------------------------------------
@@ -103,8 +116,14 @@ public class LostScreen extends MenuScreen {
 		switch (mClickAction.consume()) {
 		case SCREEN_BUTTON_RESTART:
 
-			final var lNewGameScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
-			screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lNewGameScreen));
+			if (mLevelResetter != null) {
+				mLevelResetter.resetLevel();
+				exitScreen();
+			} else {
+				final var lNewGameScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
+				screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lNewGameScreen));
+			}
+
 			break;
 
 		case SCREEN_BUTTON_EXIT:

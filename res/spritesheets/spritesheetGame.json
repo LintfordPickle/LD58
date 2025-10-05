@@ -3,6 +3,19 @@
   "textureName": "TEXTURE_GAME",
   "spriteFrames": [
     {
+      "name": "PRESS_SPACE",
+      "x": 0,
+      "y": 68,
+      "w": 176,
+      "h": 86,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    },
+    {
       "name": "COIN_00",
       "x": 0,
       "y": 18,
