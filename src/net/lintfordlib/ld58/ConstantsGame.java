@@ -32,9 +32,9 @@ public class ConstantsGame {
 	// Debug
 	// ---------------------------------------------
 
-	public static final boolean IS_DEBUG_MODE = false;
+	public static final boolean IS_DEBUG_MODE = true;
 	public static final boolean STOP_ON_BACKWARDS = IS_DEBUG_MODE && true;
-	public static final boolean ENABLED_AUTOWALK = true;
+	public static final boolean ENABLED_AUTOWALK = false;
 
 	public static final boolean START_GAME_IMMEDIATELY = false;
 

@@ -9,7 +9,7 @@
 
 ====================================================================== 
 -->
-<project name="x86-64" basedir="." default="main">
+<project name="LD58" basedir="." default="main">
 	
 	<target name="main" depends="clean, init, copy.dep, compile, createjar, notify.jre, bundle.jre, copy.launcher, config.launcher" />
 
@@ -27,7 +27,7 @@
 	<property name="JavaLauncher.dir" value="${TOOLS_PATH}/build/launcher" />
 	<property name="jre.dir">jre</property>
 
-	<property name="client-main-class">net.lintfordlib.samples.GameWindow</property>
+	<property name="client-main-class">net.lintfordlib.ld58.GameWindow</property>
 	<property name="compile-target-version" value="21" />
 	<property name="compile-source-version" value="21" />
 

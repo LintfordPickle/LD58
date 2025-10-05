@@ -1243,13 +1243,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		final var fog_d = mPosition + mPlayerZ + fog_md * .5f;
 
 		// Animated projection
-//		final var srcBuffer = mArrowTexture.ARGBColorData();
+		final var srcBuffer = mArrowTexture.ARGBColorData();
 //		mScreenBuffer.drawTexturedPolygon(
 //				srcBuffer, mArrowTexture.getTextureWidth(), mArrowTexture.getTextureHeight(), 
-//				(int)(p0.screen.x - 1 - p0.screen.z), (int)p0.screen.y, 
-//				(int)(p0.screen.x + p0.screen.z), (int)p0.screen.y, 
-//				(int)(p1.screen.x + p1.screen.z), (int)p1.screen.y, 
-//				(int)(p1.screen.x - 1 - p1.screen.z), (int)p1.screen.y, 
+//				(int)(p0.screen.x - 1 - p0.screen.z), 	(int)p0.screen.y, 
+//				(int)(p0.screen.x + p0.screen.z), 		(int)p0.screen.y, 
+//				(int)(p1.screen.x + p1.screen.z), 		(int)p1.screen.y, 
+//				(int)(p1.screen.x - 1 - p1.screen.z), 	(int)p1.screen.y, 
 //				0, 0xffffffff);
 		
 		mScreenBuffer.writeOnceLock = true;
