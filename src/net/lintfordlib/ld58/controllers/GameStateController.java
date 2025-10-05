@@ -30,6 +30,10 @@ public class GameStateController extends BaseController {
 		mGameStateListener = listener;
 	}
 
+	public GameState gameState() {
+		return mGameState;
+	}
+
 	// --------------------------------------
 	// Constructor
 	// --------------------------------------

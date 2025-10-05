@@ -13,6 +13,7 @@ import net.lintfordlib.screenmanager.MenuEntry;
 import net.lintfordlib.screenmanager.MenuScreen;
 import net.lintfordlib.screenmanager.ScreenManager;
 import net.lintfordlib.screenmanager.ScreenManagerConstants.FILLTYPE;
+import net.lintfordlib.screenmanager.ScreenManagerConstants.LAYOUT_WIDTH;
 import net.lintfordlib.screenmanager.layouts.ListLayout;
 import net.lintfordlib.screenmanager.screens.LoadingScreen;
 
@@ -45,15 +46,18 @@ public class LostScreen extends MenuScreen {
 
 		final var lLayout = new ListLayout(this);
 		lLayout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
-		lLayout.setDrawBackground(true, ColorConstants.WHITE());
-		lLayout.showTitle(true);
-		lLayout.title("You hate to see it!");
+		lLayout.layoutWidth(LAYOUT_WIDTH.FULL);
+		lLayout.setDrawBackground(false, ColorConstants.WHITE());
 
 		final var lRestartEntry = new MenuEntry(screenManager, this, "Restart");
 		lRestartEntry.registerClickListener(this, SCREEN_BUTTON_RESTART);
+		lRestartEntry.height(50);
+		lRestartEntry.desiredHeight(50);
 
 		final var lExitToMenuEntry = new MenuEntry(screenManager, this, "Exit");
 		lExitToMenuEntry.registerClickListener(this, SCREEN_BUTTON_EXIT);
+		lExitToMenuEntry.height(50);
+		lExitToMenuEntry.desiredHeight(50);
 
 		lLayout.addMenuEntry(lRestartEntry);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
@@ -89,6 +93,12 @@ public class LostScreen extends MenuScreen {
 		super.unloadResources();
 
 		mGameSpritesheetDef = null;
+	}
+
+	@Override
+	public void handleInput(LintfordCore core) {
+		super.handleInput(core);
+
 	}
 
 	@Override

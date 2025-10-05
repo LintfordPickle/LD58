@@ -1,6 +1,7 @@
 {
 	"spriteSheetLocations" : [
 		"res/spritesheets/spritesheetGame.json",
+		"res/spritesheets/spritesheetHud.json",
 		"res/spritesheets/spritesheetParticles.json"
 	]
 }

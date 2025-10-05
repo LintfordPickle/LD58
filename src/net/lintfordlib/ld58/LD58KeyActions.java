@@ -28,9 +28,5 @@ public class LD58KeyActions extends GameKeyActions {
 		
 		addNewGamepadBinding("Primary Fire",    KEY_BINDING_FIRE,    			GLFW.GLFW_GAMEPAD_BUTTON_B);
 		addNewGamepadBinding("Jump",    		KEY_BINDING_JUMP,    			GLFW.GLFW_GAMEPAD_BUTTON_A);
-		addNewGamepadBinding("Forward", 		KEY_BINDING_FORWARD, 			GLFW.GLFW_GAMEPAD_AXIS_LEFT_X);
-		addNewGamepadBinding("Backwards", 		KEY_BINDING_BACKWARD, 			GLFW.GLFW_GAMEPAD_BUTTON_DPAD_DOWN);
-		addNewGamepadBinding("Left", 			KEY_BINDING_LEFT, 				GLFW.GLFW_GAMEPAD_AXIS_LEFT_Y);
-		addNewGamepadBinding("Right", 			KEY_BINDING_RIGHT, 				GLFW.GLFW_GAMEPAD_BUTTON_DPAD_RIGHT);
 	}
 }

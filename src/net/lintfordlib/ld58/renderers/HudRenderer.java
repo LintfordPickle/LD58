@@ -2,7 +2,13 @@ package net.lintfordlib.ld58.renderers;
 
 import net.lintfordlib.assets.ResourceManager;
 import net.lintfordlib.core.LintfordCore;
+import net.lintfordlib.core.graphics.fonts.CharAtlasRenderer;
+import net.lintfordlib.core.graphics.sprites.spritesheet.SpriteSheetDefinition;
+import net.lintfordlib.core.graphics.textures.Texture;
 import net.lintfordlib.core.rendering.RenderPass;
+import net.lintfordlib.ld58.ConstantsGame;
+import net.lintfordlib.ld58.controllers.GameStateController;
+import net.lintfordlib.ld58.data.HudTextureNames;
 import net.lintfordlib.renderers.BaseRenderer;
 import net.lintfordlib.renderers.RendererManagerBase;
 
@@ -13,6 +19,11 @@ public class HudRenderer extends BaseRenderer {
 	// --------------------------------------
 
 	public static final String RENDERER_NAME = "Hud Renderer";
+
+	private GameStateController mGameStateController;
+	private SpriteSheetDefinition mHudSpriteSheet;
+	private CharAtlasRenderer mCharAtlasRenderer;
+	private Texture mDigitsTexture;
 
 	// --------------------------------------
 	// Properties
@@ -29,6 +40,9 @@ public class HudRenderer extends BaseRenderer {
 
 	public HudRenderer(RendererManagerBase rendererManager, int entityGroupUid) {
 		super(rendererManager, RENDERER_NAME, entityGroupUid);
+
+		mCharAtlasRenderer = new CharAtlasRenderer();
+
 	}
 
 	// --------------------------------------
@@ -39,21 +53,27 @@ public class HudRenderer extends BaseRenderer {
 	public void initialize(LintfordCore core) {
 		super.initialize(core);
 
-		// Get any controllers or renderers created with the game screen.
+		final var controllerManager = core.controllerManager();
+		mGameStateController = (GameStateController) controllerManager.getControllerByNameRequired(GameStateController.CONTROLLER_NAME, ConstantsGame.GAME_RESOURCE_GROUP_ID);
 	}
 
 	@Override
 	public void loadResources(ResourceManager resourceManager) {
 		super.loadResources(resourceManager);
 
-		// load hud related game resources
+		mHudSpriteSheet = resourceManager.spriteSheetManager().getSpriteSheet("SPRITESHEET_HUD", ConstantsGame.GAME_RESOURCE_GROUP_ID);
+
+		mDigitsTexture = resourceManager.textureManager().getTexture("TEXTURE_DIGITS", ConstantsGame.GAME_RESOURCE_GROUP_ID);
+		mCharAtlasRenderer.textureAtlas(mDigitsTexture);
+
 	}
 
 	@Override
 	public void unloadResources() {
 		super.unloadResources();
 
-		// unload hud related game resources
+		mHudSpriteSheet = null;
+		mDigitsTexture = null;
 	}
 
 	@Override
@@ -72,12 +92,41 @@ public class HudRenderer extends BaseRenderer {
 
 	@Override
 	public void draw(LintfordCore core, RenderPass renderPass) {
-		final var lHudBounds = core.HUD().boundingRectangle();
+		final var hudBounds = core.gameCamera().boundingRectangle();
+		final var textureBatch = mRendererManager.sharedResources().uiSpriteBatch();
+		final var backgroundFrame = mHudSpriteSheet.getSpriteFrame(HudTextureNames.PANEL);
+		final var healthFrame = mHudSpriteSheet.getSpriteFrame(HudTextureNames.HEALTH);
 
-		final var lFontBatch = mRendererManager.sharedResources().uiTitleFont();
+		final var gameState = mGameStateController.gameState();
 
-		lFontBatch.begin(core.HUD());
-		lFontBatch.drawShadowedText("Hud Renderer", lHudBounds.left() + 10.f, lHudBounds.top() + 40.f, .1f, 1.f, 1.f, 1.f);
-		lFontBatch.end();
+		textureBatch.begin(core.gameCamera());
+		textureBatch.setColorWhite();
+
+		textureBatch.draw(mHudSpriteSheet, backgroundFrame, hudBounds.left(), hudBounds.top(), hudBounds.width(), 32.f, 5.f);
+
+		int lives = 4;
+		for (int i = 0; i < lives; i++) {
+			float xx = hudBounds.left() + 10 + i * 18;
+			float yy = hudBounds.top() + 10;
+			textureBatch.draw(mHudSpriteSheet, healthFrame, xx, yy, 16, 16, 5.f);
+		}
+
+		textureBatch.setColorBlack();
+
+		// Distance
+		final var distTotal = gameState.trackLength();
+		final var distTotalWidth = String.valueOf((int) distTotal).length() * 16 * .3f;
+		mCharAtlasRenderer.drawNumber(textureBatch, (int) distTotal, hudBounds.centerX() + 160 - 10 - distTotalWidth, hudBounds.top() + 20, 0.3f, .3f);
+
+		final var distTravelled = gameState.playerDistance();
+		final var distTravelledWidth = String.valueOf((int) distTravelled).length() * 16 * .8f;
+		mCharAtlasRenderer.drawNumber(textureBatch, (int) distTravelled, hudBounds.centerX() + 160 - 20 - distTravelledWidth - distTotalWidth, hudBounds.top() + 12, 0.3f, .8f);
+
+		// Score
+		final var score = gameState.getScore();
+		final var scoreWidth = String.valueOf(score).length() * 16;
+
+		mCharAtlasRenderer.drawNumber(textureBatch, score, hudBounds.centerX() - scoreWidth / 2, hudBounds.top() + 11, 0.3f, .9f);
+		textureBatch.end();
 	}
 }

@@ -1,0 +1,33 @@
+{
+  "spriteSheetName": "SPRITESHEET_HUD",
+  "textureName": "TEXTURE_HUD",
+  "spriteFrames": [
+    {
+      "name": "PANEL",
+      "x": 0,
+      "y": 18,
+      "w": 320,
+      "h": 32,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    },
+    {
+      "name": "HEALTH",
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    }
+  ],
+  "animationFramesMap": {}
+}

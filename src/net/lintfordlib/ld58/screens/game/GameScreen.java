@@ -8,6 +8,8 @@ import org.lwjgl.glfw.GLFW;
 import net.lintfordlib.assets.ResourceManager;
 import net.lintfordlib.controllers.ControllerManager;
 import net.lintfordlib.core.LintfordCore;
+import net.lintfordlib.core.debug.Debug;
+import net.lintfordlib.core.graphics.ColorHelper;
 import net.lintfordlib.core.graphics.sprites.spritesheet.SpriteSheetDefinition;
 import net.lintfordlib.core.graphics.textures.FullScreenBuffer;
 import net.lintfordlib.core.graphics.textures.FullScreenBuffer.DepthMode;
@@ -100,6 +102,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 		public ProjectileDefinition def;
 		public float xOffset;
+		public float yOffset;
 		public float zOffset;
 		public int forwards;// z+
 		public float lifetime;
@@ -109,10 +112,11 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			kill();
 		}
 
-		public void init(ProjectileDefinition def, float xOffset, float zOffset, int owner, int forwards, float life) {
+		public void init(ProjectileDefinition def, float xOffset, float yOffset, float zOffset, int owner, int forwards, float life) {
 			this.def = def;
 			isActive = true;
 			this.xOffset = xOffset;
+			this.yOffset = yOffset;
 			this.zOffset = zOffset;
 			this.forwards = forwards;
 			collisionAlive = true;
@@ -210,22 +214,20 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			camera.y = world.y - camY;
 			camera.z = world.z - camZ;
 
-			// Rotate around Y-axis (yaw)
 			final var cosYaw = (float) Math.cos(yaw);
-			float sinYaw = (float) Math.sin(yaw);
+			final var sinYaw = (float) Math.sin(yaw);
 
-			// Rotate around X-axis (pitch)
+			final var xYaw = camera.x * cosYaw + camera.z * sinYaw;
+			final var zYaw = -camera.x * sinYaw + camera.z * cosYaw;
+
 			final var cosPitch = (float) Math.cos(pitch);
 			final var sinPitch = (float) Math.sin(pitch);
 
-			final var x = camera.x * cosYaw + camera.z * sinYaw;
-			final var y = camera.y * cosPitch - camera.z * sinPitch;
-			var z = -camera.x * sinYaw + camera.z * cosYaw;
+			final var y = camera.y * cosPitch - zYaw * sinPitch;
+			final var z = camera.y * sinPitch + zYaw * cosPitch;
 
-			z = camera.y * sinPitch + camera.z * cosPitch;
-
-			camera.x = x;
-			camera.y = y;
+			camera.x = xYaw;
+			camera.y = camera.y;
 			camera.z = z;
 		}
 
@@ -293,6 +295,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	private GameStateController mGameStateController;
 	private HudRenderer mHudRenderer;
 	private Texture mArrowTexture;
+	private Texture mBackgroundTexture;
+	private Texture mCloudsTexture;
 
 	private SpriteSheetDefinition mGameSpriteSheet;
 
@@ -302,9 +306,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	private List<TrackEntity> mEntities = new ArrayList<>();
 	private List<TrackProjectile> mProjectiles = new ArrayList<>();
 
-	private final List<TrackProp> mEntityUpdateList = new ArrayList<>();
-	private final List<TrackProp> mProjectilesUpdateList = new ArrayList<>();
-	private final List<TrackProp> mPropUpdateList = new ArrayList<>();
+	float backgroundXOffset;
+	float backgroundYOffset;
+	float backgroundXOffsetNat;
+
+	float backgroundCloudsXOffset;
+	float backgroundCloudsYOffset;
+	float backgroundCloudsXOffsetNat;
 
 	// camera vars
 	private float mFoV = 100;
@@ -312,19 +320,23 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	private float mCameraDepth; // computed (cam dist from screen)
 	private float mCameraPitch = 0;
 	private float mCameraYaw = 0;
+	private float mCameraTargetZ; // target for yaw
+	private float mCameraOffsetZ; // camera Z position (add mPlayerZ to get player's absolute Z position).
 
 	// world vars
-	public final int mSegmentLength = 10;
+	public final int mSegmentLength = 15;
 	public final int mRumbleLength = 2;
 	private float mTrackLength; // computed
 	private float mRoadWidth = 300;
 
 	private int mDrawDistance = 50; // number of segments to draw
 	private int mPlayerLane;
+
 	private float mPlayerX; // player offset from center on X axis
-	private float mPlayerY; // altitude
+	private float mPlayerAltitude; // altitude
 	private float mPlayerYAcc;
 	private float mPlayerYVel;
+	private float mPlayerY;
 	private float mPlayerZ; // (computed) player relative z distance from camera
 	private float mPlayerWorldZOffset = 20;
 
@@ -336,6 +348,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	private final float step = 1f / 60f;
 	private float mSpeed;
 	private float mMaxSpeed = mSegmentLength / step;
+
+	private float mSkyTime;
+	private int mSkyTint;
 
 	// --------------------------------------
 	// Constructor
@@ -368,6 +383,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	public void loadResources(ResourceManager resourceManager) {
 		super.loadResources(resourceManager);
 
+		mBackgroundTexture = resourceManager.textureManager().loadTexture("TEXTURE_GAMEBACKGROUND", "res/textures/textureGameBackground.png", ConstantsGame.GAME_RESOURCE_GROUP_ID);
+		mCloudsTexture = resourceManager.textureManager().loadTexture("TEXTURE_CLOUDS", "res/textures/textureGameClouds.png", ConstantsGame.GAME_RESOURCE_GROUP_ID);
+
 		mGameSpriteSheet = resourceManager.spriteSheetManager().getSpriteSheet("SPRITESHEET_GAME", ConstantsGame.GAME_RESOURCE_GROUP_ID);
 		mArrowTexture = resourceManager.textureManager().loadTexture("TEXTURE_ARROW", "res/textures/textureArrow.png", ConstantsGame.GAME_RESOURCE_GROUP_ID);
 
@@ -379,6 +397,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		super.unloadResources();
 
 		mGameSpriteSheet = null;
+		mBackgroundTexture = null;
+		mCloudsTexture = null;
+		mArrowTexture = null;
 
 		mScreenBuffer.unloadResources();
 	}
@@ -400,7 +421,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_FIRE)) {
-			addProjectile(mPlayerX, mPosition + mPlayerZ + mPlayerWorldZOffset + 10, 0, 1, 2000);
+			addProjectile(mPlayerX, mPlayerAltitude, mPosition + mPlayerZ + mPlayerWorldZOffset + 10, 0, 1, 2000);
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_JUMP)) {
@@ -416,9 +437,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_FORWARD)) {
-			float speed = 60.f;
+			float speed = 100.f;
 			if (core.input().keyboard().isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT))
-				speed += 200;
+				speed += 50;
 
 			mSpeed = speed;
 		}
@@ -442,6 +463,10 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		if (mGameState.hasGameEnded() || !mGameState.hasGameStarted())
 			return;
 
+		final float dt = (float) core.gameTime().elapsedTimeMilli() * 0.001f;
+		mSkyTime += dt * 1000 * 10;
+		mSkyTint = getSkyTint();
+
 		mPlayerX = getLaneOffsetX(mPlayerLane);
 		if (mPlayerHitCooldown > 0) {
 			mPlayerHitCooldown -= core.gameTime().elapsedTimeMilli();
@@ -459,14 +484,118 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 
 		var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
+		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
+		playerSegmentIndex = playerSegment.index;
+
+		// Update parallax layer offsets
+		var speedPercent = MathHelper.clamp(mSpeed / 100.f, 0, 1);
+		final var cameraSegment11 = findSegment(mPosition);
+		backgroundXOffset += 0.001f * speedPercent * cameraSegment11.curve * 2.f;
+		backgroundXOffsetNat += 0.001f * dt;
+
+		backgroundCloudsXOffset += 0.001f * speedPercent * cameraSegment11.curve * 2.f;
+		backgroundCloudsXOffsetNat += 0.01f * dt;
+
+		final var maxHeight = 2000;
+		final var floorHeight = InterpolationHelper.lerp(playerSegment.p0.world.y, playerSegment.p1.world.y, playerPercent);
+		backgroundYOffset = MathHelper.clamp(floorHeight / maxHeight, -1f, 1f) * 50.f;
+		backgroundCloudsYOffset = MathHelper.clamp(floorHeight / maxHeight, -1f, 1f) * 100.f;
+
 		updateEntities(core);
 		updateProps(core);
 		updateProjectiles(core, playerSegment);
 		updatePlayerAltitude(core, playerSegment);
 		updatePlayerCollisions(core, playerSegment);
 
-		mPosition += mSpeed * core.gameTime().elapsedTimeMilli() * 0.001f;
+		mPosition += mSpeed * dt;
 		mGameState.playerDistance(mPosition + mPlayerZ + mPlayerWorldZOffset);
+
+		// update the camera stuff
+
+		mCameraTargetZ = 10;
+		final var cameraSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset + mCameraTargetZ);
+		final var cameraPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset + mCameraTargetZ) % mSegmentLength) / mSegmentLength;
+		final var cameraTargetH = InterpolationHelper.lerp(cameraSegment.p0.world.y, cameraSegment.p1.world.y, cameraPercent);
+
+		final var maxYawHeight = 50.f;
+		final var relYawHeight = (cameraTargetH - floorHeight);
+		final var maxYawAmt = -MathHelper.clamp(-relYawHeight / maxYawHeight, -1.f, 1.f);
+
+		final var cameraBaseHeight = 200;
+		final var cameraPitchExtent = 200;
+		final var maxPitchExtent = .25f;
+		
+		mCameraPitch = MathHelper.clamp(maxYawAmt * maxPitchExtent, -2f, 0f);
+		mCameraHeight = MathHelper.clamp(cameraBaseHeight + -(maxYawAmt * cameraPitchExtent), 200f, 700f);
+		mCameraOffsetZ = MathHelper.clamp(-maxYawAmt * 20, 0f, 20f);
+		
+//		mCameraPitch = 0.f;
+//		mCameraHeight = 200;
+//		mCameraOffsetZ = 0;
+	}
+
+	private float getDayPhase() {
+		final int cycle = 50000; // full day cycle length in ms DEF: 240000
+		return (mSkyTime % cycle) / (float) cycle; // normalized
+	}
+
+	private int getSkyTint() {
+		final var phase = getDayPhase();
+
+		final int dayTint = 0xFFBFBFBF; // bright (no tint)
+		final int sunsetTint = 0xFFFF7E5F; // warm orange
+		final int nightTint = 0xFF220022; // dark bluish
+
+		int tint;
+		if (phase < 0.33f) {
+			// Day → Sunset
+			float t = phase / 0.33f;
+			tint = ColorHelper.lerpColor(dayTint, sunsetTint, t);
+		} else if (phase < 0.66f) {
+			// Sunset → Night
+			float t = (phase - 0.33f) / 0.33f;
+			tint = ColorHelper.lerpColor(sunsetTint, nightTint, t);
+		} else {
+			// Night → Day
+			float t = (phase - 0.66f) / 0.34f;
+			tint = ColorHelper.lerpColor(nightTint, dayTint, t);
+		}
+
+		return tint;
+	}
+
+	public static int applyFog(int distance, int maxDistance, int objectColor, int fogColor) {
+		// Calculate fog factor (0-256, where 256 = full fog)
+		int fogFactor = (distance * 256) / maxDistance;
+
+		// Clamp to [0, 256] range
+		if (fogFactor < 0)
+			fogFactor = 0;
+		if (fogFactor > 256)
+			fogFactor = 256;
+
+		int invFogFactor = 256 - fogFactor;
+
+		// Extract ARGB components from object color
+		int objA = (objectColor >> 24) & 0xFF;
+		int objR = (objectColor >> 16) & 0xFF;
+		int objG = (objectColor >> 8) & 0xFF;
+		int objB = objectColor & 0xFF;
+
+		// Extract ARGB components from fog color
+		int fogA = (fogColor >> 24) & 0xFF;
+		int fogR = (fogColor >> 16) & 0xFF;
+		int fogG = (fogColor >> 8) & 0xFF;
+		int fogB = fogColor & 0xFF;
+
+		// Blend using fixed-point math: result = object * (1 - fogFactor) + fog * fogFactor
+		int blendA = (objA * invFogFactor + fogA * fogFactor) >> 8;
+		int blendR = (objR * invFogFactor + fogR * fogFactor) >> 8;
+		int blendG = (objG * invFogFactor + fogG * fogFactor) >> 8;
+		int blendB = (objB * invFogFactor + fogB * fogFactor) >> 8;
+
+		// Combine back into ARGB8888 format
+		return (blendA << 24) | (blendR << 16) | (blendG << 8) | blendB;
 	}
 
 	private void updatePlayerAltitude(LintfordCore core, TrackSegment playerSegment) {
@@ -484,12 +613,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		var G = 9.87f;
 		if (isFloored) {
 			final var desiredAltitude = segmentHeight + 15;
-			final var relativeAltitude = desiredAltitude - mPlayerY;
+			final var relativeAltitude = desiredAltitude - mPlayerAltitude;
 			mPlayerYAcc += relativeAltitude * k;
 
-			if (mPlayerY < segmentHeight) {
-				mPlayerY = segmentHeight + 1.f;
-				mPlayerYAcc += relativeAltitude * .5f;
+			if (mPlayerAltitude < segmentHeight) {
+				mPlayerAltitude = segmentHeight + 3.f;
+				mPlayerYAcc += relativeAltitude * 1.f;
+				mPlayerYVel = -mPlayerYVel * .6f;
 			}
 
 		} else {
@@ -501,15 +631,16 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mPlayerYVel -= G * dt; // gravity
 		mPlayerYVel += mPlayerYAcc;
 
-		mPlayerY += mPlayerYVel * dt;
+		mPlayerAltitude += mPlayerYVel * dt;
 
 		mPlayerYAcc = 0;
-		mPlayerYVel *= 0.98f;
+		mPlayerYVel *= 0.995f;
 
-		// System.out.printf("player:%.1f (%.1f)%n", mPlayerY, segmentHeight);
-
-		if (!isFloored && mPlayerY < segmentHeight - 5.f) {
+		if (!isFloored && mPlayerAltitude < segmentHeight - 5.f) {
 			System.out.println("You Dead!");
+			mGameState.removeHealth();
+
+			// TODO: need to restart the level or something ???
 		}
 
 	}
@@ -520,10 +651,10 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var segmentHeight = InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
 
 		final var isFloored = playerSegment.laneFill[mPlayerLane];
-		final var isOnFloor = mPlayerY - segmentHeight - 15 < 10.0f;
+		final var isOnFloor = mPlayerAltitude - segmentHeight - 15 < 10.0f;
 
 		if (isFloored && isOnFloor) {
-			mPlayerYAcc += 400.0f;
+			mPlayerYAcc += 200.0f;
 		}
 
 	}
@@ -618,7 +749,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				if (def.shoots) {
 					final var s = (float) Math.pow(1f - (1f - 1f), 1f / 60f);
 					if (RandomNumbers.getRandomChance(s)) {
-						addProjectile(entity.xOffset, segment.p0.world.z - 10, TEAM_ENEMY_UID, -1, 1500);
+						addProjectile(entity.xOffset, segment.p0.world.y, segment.p0.world.z - 10, TEAM_ENEMY_UID, -1, 1500);
 					}
 				}
 
@@ -744,10 +875,12 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 		final var pixels = mScreenBuffer.getPixels();
 
+		drawBackground(core);
+
 		clearBuffer(core, pixels);
 
+		drawSky(pixels);
 		mScreenBuffer.mEnableDepth = true;
-
 		mDrawDistance = 200;
 		drawTrack(core);
 
@@ -760,10 +893,101 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mScreenBuffer.draw(core);
 
 		super.draw(core);
+
+		final var debugSegment = getSegment(playerSegmentIndex);
+		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "id: " + playerSegmentIndex, -150, -10, .5f);
+		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "seg.cur: " + debugSegment.curve, -150, 0, .5f);
+		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "p0.cur: " + debugSegment.p0.curvature, -150, 10, .5f);
+		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "p1.cur: " + debugSegment.p1.curvature, -150, 20, .5f);
+
 	}
 
 	private void clearBuffer(LintfordCore core, int[] buffer) {
-		mScreenBuffer.clear(0xff1f2f3f);
+		mScreenBuffer.clear(0x001f2f3f);
+	}
+
+	private void drawBackground(LintfordCore core) {
+
+		final var hudBounds = mGameCamera.boundingRectangle();
+
+		final var textureBatch = mRendererManager.sharedResources().uiSpriteBatch();
+		textureBatch.setColorWhite();
+		{
+			textureBatch.begin(mGameCamera);
+			final var srcX = (backgroundXOffset + backgroundXOffsetNat) * 320;
+			final var srcY = backgroundYOffset;
+			final var srcW = 320;
+			final var srcH = 240;
+
+			// @formatter:off
+			textureBatch.draw(mBackgroundTexture, 
+					srcX, srcY, srcW, srcH, 
+					hudBounds.left(), hudBounds.top(), hudBounds.width(), hudBounds.height(), 
+					10.f);
+			// @formatter:on
+			textureBatch.end();
+		}
+
+		textureBatch.begin(mGameCamera);
+		final var srcX = (backgroundCloudsXOffset + backgroundCloudsXOffsetNat) * 320;
+		final var srcY = backgroundCloudsYOffset;
+		final var srcW = 320;
+		final var srcH = 240;
+
+		// @formatter:off
+		textureBatch.draw(mCloudsTexture, 
+				srcX, srcY, srcW, srcH, 
+				hudBounds.left(), hudBounds.top(), hudBounds.width(), hudBounds.height(), 
+				10.f);
+		// @formatter:on
+		textureBatch.end();
+
+	}
+
+	private void drawSky(int[] buffer) {
+		final var phase = getDayPhase();
+
+		// Define keyframe colors
+		final int dayTop = 0x0087CEEB; // sky blue
+		final int dayMid = 0xFFBFBFBF; // light horizon
+		final int sunsetTop = 0x002A2A72; // deep purple-blue
+		final int sunsetMid = 0xFFFF7E5F; // orange/pink
+		final int nightTop = 0x00000022; // almost black-blue
+		final int nightMid = 0xFF220022; // dark purple
+
+		// Interpolate keyframes based on phase
+		int topColor, midColor;
+
+		if (phase < 0.33f) {
+			// Day → Sunset
+			float t = phase / 0.33f;
+			topColor = ColorHelper.lerpColor(dayTop, sunsetTop, t);
+			midColor = ColorHelper.lerpColor(dayMid, sunsetMid, t);
+		} else if (phase < 0.66f) {
+			// Sunset → Night
+			float t = (phase - 0.33f) / 0.33f;
+			topColor = ColorHelper.lerpColor(sunsetTop, nightTop, t);
+			midColor = ColorHelper.lerpColor(sunsetMid, nightMid, t);
+		} else {
+			// Night → Day
+			float t = (phase - 0.66f) / 0.34f;
+			topColor = ColorHelper.lerpColor(nightTop, dayTop, t);
+			midColor = ColorHelper.lerpColor(nightMid, dayMid, t);
+		}
+
+		// need to force top color to have 0x00 alpha
+		topColor = topColor & 0xccFFFFFF;
+
+		int skyHeight = ConstantsGame.GAME_CANVAS_HEIGHT;
+
+		for (int y = 0; y < skyHeight; y++) {
+			float t = (float) y / (skyHeight - 1);
+			int color = ColorHelper.lerpColor(topColor, midColor, t);
+
+			for (int x = 0; x < ConstantsGame.GAME_CANVAS_WIDTH; x++) {
+				buffer[(ConstantsGame.GAME_CANVAS_HEIGHT - 1 - y) * ConstantsGame.GAME_CANVAS_WIDTH + x] = color;
+			}
+		}
 	}
 
 	private void drawTrack(LintfordCore core) {
@@ -771,8 +995,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var baseSegment = findSegment(mPosition);
 		final var basePercent = (mPosition % mSegmentLength) / mSegmentLength;
 
-		final var playerSegment = findSegment(mPosition + mPlayerZ);
-		final var playerPercent = ((mPosition + mPlayerZ) % mSegmentLength) / mSegmentLength;
+		final var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
+		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
 
 		final var playerY = InterpolationHelper.lerp(playerSegment.p0.world.y, playerSegment.p1.world.y, playerPercent);
 
@@ -784,11 +1008,14 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		// segments drawn front to back
 		float maxY = -ConstantsGame.GAME_CANVAS_HEIGHT / 2; // clip segments based on height
 		final var numSegments = mTrackSegments.size();
+
 		float x = 0;
 		float dx = -(baseSegment.curve * basePercent);
 
+		mDrawDistance = MathHelper.clampi(mDrawDistance, 0, numSegments);
 		for (int i = 0; i < mDrawDistance; i++) {
-			final var segment = mTrackSegments.get((baseSegment.index + i) % numSegments);
+			int ii = (baseSegment.index + i) % numSegments;
+			final var segment = mTrackSegments.get(ii);
 
 			segment.isLooped = segment.index < baseSegment.index;
 			segment.clipSpaceY = maxY; // used to clip the sprites/cars in next pass
@@ -797,14 +1024,15 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			segment.p1.curvature = x + dx;
 
 			final var camX = mPlayerX;
-			segment.p0.projectWorldToCamera((camX * mRoadWidth) - segment.p0.curvature, playerY + mCameraHeight, mPosition, mCameraPitch, mCameraYaw);
-			segment.p1.projectWorldToCamera((camX * mRoadWidth) - segment.p1.curvature, playerY + mCameraHeight, mPosition, mCameraPitch, mCameraYaw);
+
+			segment.p0.projectWorldToCamera((camX * mRoadWidth) - segment.p0.curvature, playerY + mCameraHeight, mPosition + mCameraOffsetZ, mCameraPitch, mCameraYaw);
+			segment.p1.projectWorldToCamera((camX * mRoadWidth) - segment.p1.curvature, playerY + mCameraHeight, mPosition + mCameraOffsetZ, mCameraPitch, mCameraYaw);
 
 			segment.p0.projectCameraToScreen(mCameraDepth, canvasWidth, canvasHeight, mRoadWidth / 2);
 			segment.p1.projectCameraToScreen(mCameraDepth, canvasWidth, canvasHeight, mRoadWidth / 2);
 
 			x = x + dx;
-			dx = dx + segment.curve * 3.f;
+			dx = dx + segment.curve;
 
 			// check clipped (height based)
 			final var isBehindUs = (segment.p0.camera.z <= mCameraDepth * mPlayerZ);
@@ -823,6 +1051,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mScreenBuffer.writeOnceLock = false;
 	}
 
+	int playerSegmentIndex = 50;
+
 	private void drawSegment(TrackSegment segment, int canvasWidth, int numLanes, boolean drawLanes) {
 		// @formatter:off
 		final var p0 = segment.p0;
@@ -830,6 +1060,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 		final var r0 = p0.screen.z / 30.0f;
 		final var r1 = p1.screen.z / 30.0f;
+		
+		final var fog_md = mDrawDistance * mSegmentLength / 2;
+		final var fog_d = mPosition + mPlayerZ + mPlayerWorldZOffset + fog_md;
 
 		// Animated projection
 //		final var srcBuffer = mArrowTexture.ARGBColorData();
@@ -855,7 +1088,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				(int) (p0.screen.x - p0.screen.z - r0), (int) (p0.screen.y + wallHeight * p0.screenScale * 240), 
 				(int) (p1.screen.x - p1.screen.z - r1), (int) (p1.screen.y + wallHeight * p1.screenScale * 240), 
 				(int) (p1.screen.x - p1.screen.z),		(int) p1.screen.y, 
-				p0.world.z, 0xffcc0419, true);
+				p0.world.z, applyFog((int)(p0.world.z - fog_d), fog_md, 0xffcc0419, 0x00ffffff), true);
 
 		// wall right
 		mScreenBuffer.drawPolygon(
@@ -863,9 +1096,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				(int) (p0.screen.x + p0.screen.z + r0), (int) (p0.screen.y + wallHeight/2 * p0.screenScale * 240), 
 				(int) (p1.screen.x + p1.screen.z + r1), (int) (p1.screen.y + wallHeight/2 * p1.screenScale * 240),
 				(int) (p1.screen.x + p1.screen.z + 1), 		(int) (p1.screen.y), 
-				p0.world.z, 0x55cc0419, true);
-
-
+				p0.world.z, applyFog((int)(p0.world.z - fog_d), fog_md, 0x55cc0419, 0x00ffffff), true);
+		
 		// road
 		var lanes = NUM_LANES - 1;
 		for (int i = 0; i < NUM_LANES; i++)  {
@@ -880,13 +1112,18 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			final var blockWidth0 = (mRoadWidth / 4) * p0.screenScale * canvasWidth / 2;
 			final var blockWidth1 = (mRoadWidth / 4) * p1.screenScale * canvasWidth / 2;
 			
+			var segColor = segment.variation == 0 ? 0xffa4bfaf : 0xffa4bfef;
+			
+			if(segment.index == playerSegmentIndex)
+				segColor = ColorHelper.lerpColor(0x22990000, segColor, .5f);
+			
 			mScreenBuffer.drawPolygon(
 					(int)(lx0), (int)p0.screen.y, 
 					(int)(lx0 + blockWidth0), (int)p0.screen.y, 
 					(int)(lx1 + blockWidth1), (int)p1.screen.y, 
 					(int)(lx1), (int)p1.screen.y, 
 					p0.world.z,
-					segment.variation == 0 ? 0xffa4bfaf : 0xffa4bfef, true);
+					applyFog((int)(p0.world.z - fog_d), fog_md, segColor, 0x00ffffff), true);
 		}
 					
 		// Lanes
@@ -919,15 +1156,17 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	private void drawPlayer(LintfordCore core) {
 
 		final var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
-		final var playerPercent = ((mPosition + mPlayerZ) % mSegmentLength) / mSegmentLength;
+		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
+
 		final var scale = InterpolationHelper.lerp(playerSegment.p0.screenScale, playerSegment.p1.screenScale, playerPercent);
 		final var segmentCurvature = InterpolationHelper.lerp(playerSegment.p0.curvature, playerSegment.p1.curvature, playerPercent);
+
 		final var playerFrame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.PLAYER_MID);
 
 		final var playerW = (int) (playerFrame.width() * scale * ConstantsGame.GAME_CANVAS_WIDTH / 2);
 		final var playerH = (int) (playerFrame.height() * scale * ConstantsGame.GAME_CANVAS_HEIGHT / 2);
-		final var playerX = (int) (mPlayerX + segmentCurvature) + (ConstantsGame.GAME_CANVAS_WIDTH / 2 - playerW / 2);
-		final var playerY = (int) mPlayerY;
+		final var playerX = (int) (0 + segmentCurvature) + (ConstantsGame.GAME_CANVAS_WIDTH / 2 - playerW / 2);
+		final var playerY = (int) mPlayerAltitude;
 		final var playerZ = playerSegment.p0.world.z - 10; // cheat a little
 
 		final var texture = mGameSpriteSheet.texture();
@@ -950,7 +1189,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 					playerZ, col, false);
 		}
 
-		{
+		if (playerSegment.laneFill[mPlayerLane]) {
 			final var shadowFrame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.OBJECT_SHADOW);
 
 			final var srcX = (int) shadowFrame.x();
@@ -960,7 +1199,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 			final var floorHeight = (int) InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
 
-			final var shadowScale = InterpolationHelper.lerp(1.5f, 0.15f, mPlayerY / (floorHeight + 100));
+			final var shadowScale = InterpolationHelper.lerp(1.5f, 0.15f, mPlayerAltitude / (floorHeight + 100));
 
 			mScreenBuffer.copyPixelsAtlas(texture.ARGBColorData(), // Src pixels
 					srcX, srcY, srcW, srcH, texture.getTextureWidth(), // src rect
@@ -1122,7 +1361,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				final var destW = spriteFrame.width() * scale * ConstantsGame.GAME_CANVAS_WIDTH / 2;
 				final var destH = spriteFrame.height() * scale * ConstantsGame.GAME_CANVAS_HEIGHT / 2;
 				final var destX = screenX + (projectile.xOffset * scale * mRoadWidth * ConstantsGame.GAME_CANVAS_WIDTH / 2) - destW / 2;
-				final var destY = screenY + 1;
+				final var destY = screenY + 1; // TODO: projectiles should have heights too - but it is a relative to floor height (the player is absolute height though Oo)
 
 				int srcX = (int) spriteFrame.x();
 				int srcY = (int) (spriteFrame.y());
@@ -1153,11 +1392,17 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mPosition = 0; // back to start
 		mPlayerX = 0.f; // center
 		mSpeed = 0.f;
+
+		backgroundXOffset = 0.f;
+		backgroundXOffsetNat = 0.f;
+
+		mGameState.reset();
 	}
 
 	private void setupWorld() {
 
 		// cam
+		mCameraHeight = 200;
 		mFoV = 140;
 		mCameraDepth = 1f / (float) Math.tan(mFoV / 2 * Math.PI / 180);
 		mPlayerZ = mCameraHeight * mCameraDepth;
@@ -1167,20 +1412,35 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mTrackSegments.clear();
 
 		final var testHillHeight = 120;
+		final var turnMod = 4.f;
+		addRoad(0, 4, 0, 0*turnMod, 0);
+		addRoad(10, 30, 10, 0*turnMod, testHillHeight * 1.4f);
+		addRoad(0, 30, 0, .5f*turnMod, -testHillHeight / 4);
+		addRoad(0, 20, 0, 0f*turnMod, -testHillHeight / 4);
+		addRoad(10, 30, 10, -.6f*turnMod, testHillHeight);
+		addRoad(10, 30, 10, .8f*turnMod, -testHillHeight);
+		addRoad(10, 30, 10, -.3f*turnMod, testHillHeight);
+		addRoad(30, 100, 0, -0.1f*turnMod, -testHillHeight);
+		addRoad(30, 75, 0, .3f*turnMod, -testHillHeight / 2);
+		addRoad(60, 50, 20, .3f*turnMod, 0);
+		addRoad(0, 75, 0, .4f*turnMod, testHillHeight * 2);
+		addRoad(0, 75, 0, 0*turnMod, testHillHeight);
 
-		addRoad(0, 4, 0, 0, 0);
-		addRoad(10, 50, 10, 0, testHillHeight * 1.4f);
-		addRoad(0, 30, 0, .5f, -testHillHeight / 4);
-		addRoad(10, 30, 10, -.6f, testHillHeight);
-		addRoad(10, 30, 10, .8f, -testHillHeight);
-//		addRoad(10, 30, 10, -.3f, testHillHeight);
-//		addRoad(30, 100, 0, -0.1f, -testHillHeight);
-//		addRoad(30, 75, 0, .3f, -testHillHeight / 2);
-//		addRoad(60, 50, 20, .3f, 0);
-//		addRoad(0, 75, 0, .4f, testHillHeight * 2);
-//		addRoad(0, 75, 0, 0, testHillHeight);
+//		final var testHillHeight = 20;
+//		addRoad(0, 20, 0, 0, 0);
+//		addRoad(0, 10, 0, -1.5f, 0);
+//		addRoad(0, 10, 0, 1.5f, 0);
+//		addRoad(0, 10, 0, -1.5f, 0);
+//		addRoad(0, 20, 0, .5f, testHillHeight);
+//		addRoad(0, 20, 0, 1.5f, testHillHeight * 3);
+//		addRoad(0, 20, 0, 0, 0);
+//		addRoad(0, 20, 0, 2.5f, testHillHeight);
+//		addRoad(0, 40, 0, 0, -testHillHeight * 6);
+//		addRoad(0, 40, 0, 0, -testHillHeight * 3);
 
-		digOutSegments(20, 25, 3);
+		digOutSegments(20, 5, 3);
+		digOutSegments(100, 10, 0);
+		digOutSegments(100, 10, 1);
 
 		// TODO: Need to obstruct your path
 		addProp(PropDefinition.WALL, 100, 0);
@@ -1203,8 +1463,10 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 		// TODO: These little fuckers need to shoot and move
 		addEntity(EntityDefinition.NORMAL, 120, 2);
+		addEntity(EntityDefinition.NORMAL, 130, 3);
+		addEntity(EntityDefinition.NORMAL, 140, 4);
 //		addEntity(EntityDefinition.SHOOTER, 110, 3);
-//		addEntity(EntityDefinition.NORMAL, 150, 3);
+		addEntity(EntityDefinition.NORMAL, 150, 3);
 
 		final var numSegments = mTrackSegments.size();
 		for (int i = 0; i < numSegments; i++) {
@@ -1248,14 +1510,14 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 	}
 
-	private void digOutSegments(int startSegId, int endSegId, int lane) {
-		if (startSegId > endSegId || endSegId < 0)
-			return;
-
+	private void digOutSegments(int startSegId, int length, int lane) {
 		if (lane < 0 || lane >= NUM_LANES)
 			return;
 
-		for (int i = startSegId; i < endSegId; i++) {
+		for (int i = startSegId; i < startSegId + length; i++) {
+			if (startSegId + length > mTrackSegments.size())
+				return;
+
 			final var segment = getSegment(i);
 			segment.laneFill[lane] = false;
 		}
@@ -1268,14 +1530,14 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		segment.props.add(newProp);
 	}
 
-	private void addProjectile(float offsetX, float offsetZ, int owner, int forwards, float life) {
+	private void addProjectile(float offsetX, float yOffset, float offsetZ, int owner, int forwards, float life) {
 		final var segment = findSegment(offsetZ);
 		final var projectile = getFreeProjectile();
 
 		if (projectile == null)
 			return;
 
-		projectile.init(ProjectileDefinition.BULLET, offsetX, offsetZ, owner, forwards, life);
+		projectile.init(ProjectileDefinition.BULLET, offsetX, yOffset, offsetZ, owner, forwards, life);
 		segment.projectiles.add(projectile);
 
 		// global add for update
