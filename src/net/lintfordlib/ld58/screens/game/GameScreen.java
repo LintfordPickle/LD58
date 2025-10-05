@@ -35,8 +35,10 @@ import net.lintfordlib.screenmanager.screens.BaseGameScreen;
 
 public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
-	public static final int TEAM_PLAYER_UID = 0;
-	public static final int TEAM_ENEMY_UID = 1;
+	public static final float JUMP_ALT_POWER = 100;
+
+	public static final float HIT_FLASH_TIME = 50;
+	public static final float HIT_COOLDOWN_TIME = 300;
 
 	public static final int NUM_LANES = 4;
 
@@ -61,32 +63,36 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	}
 
 	public static class EntityDefinition {
-		public static final EntityDefinition NORMAL = new EntityDefinition(GameTextureNames.ENEMY_MID, 10f, false, false);
-		public static final EntityDefinition SHOOTER = new EntityDefinition(GameTextureNames.ENEMY_MID, 0f, true, true);
+		public static final EntityDefinition NORMAL = new EntityDefinition(GameTextureNames.ENEMY_MID, 1f, 2, false);
+		public static final EntityDefinition BLOCKER_SHOOTER = new EntityDefinition(GameTextureNames.ENEMY_MID, 0f, 3, true);
+		public static final EntityDefinition WALKER_SHOOTER = new EntityDefinition(GameTextureNames.ENEMY_MID, 1f, 1, true);
 
 		public final int spriteFrameUid;
 		public final float moveSpeed;
-		public final boolean godMode;
+		public final int totalLives;
 		public final boolean shoots;
 
-		private EntityDefinition(int spriteFrameUid, float moveSpeed, boolean godMode, boolean shoots) {
+		private EntityDefinition(int spriteFrameUid, float moveSpeed, int totalLives, boolean shoots) {
 			this.spriteFrameUid = spriteFrameUid;
 			this.moveSpeed = moveSpeed;
-			this.godMode = godMode;
+			this.totalLives = totalLives;
 			this.shoots = shoots;
 		}
 	}
 
 	public static class ProjectileDefinition {
 
-		public static final ProjectileDefinition BULLET = new ProjectileDefinition(GameTextureNames.BULLET, 10);
+		public static final ProjectileDefinition P_BULLET = new ProjectileDefinition(GameTextureNames.BULLET, 6, 1000);
+		public static final ProjectileDefinition E_BULLET = new ProjectileDefinition(GameTextureNames.BULLET, 2, 2500);
 
 		public final int spriteFrameUid;
 		public final float speed;
+		public final float life;
 
-		private ProjectileDefinition(int spriteFrameUid, float speed) {
+		private ProjectileDefinition(int spriteFrameUid, float speed, float life) {
 			this.spriteFrameUid = spriteFrameUid;
 			this.speed = speed;
+			this.life = life;
 		}
 	}
 
@@ -112,7 +118,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			kill();
 		}
 
-		public void init(ProjectileDefinition def, float xOffset, float yOffset, float zOffset, int owner, int forwards, float life) {
+		public void init(ProjectileDefinition def, float xOffset, float yOffset, float zOffset, int forwards) {
 			this.def = def;
 			isActive = true;
 			this.xOffset = xOffset;
@@ -120,7 +126,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			this.zOffset = zOffset;
 			this.forwards = forwards;
 			collisionAlive = true;
-			lifetime = life;
+			lifetime = def.life;
 		}
 
 		public void kill() {
@@ -144,6 +150,14 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		public float zOffset;
 		public float percent;
 		public int forwards; // movement direction
+		public int lives;
+		public float hitCooldown;
+		public float flashTimer;
+		public boolean isFlashing;
+
+		public boolean isOnCooldown() {
+			return hitCooldown > 0;
+		}
 
 		public TrackEntity() {
 
@@ -155,6 +169,25 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			this.zOffset = zOffset;
 			collisionAlive = true;
 			isAlive = true;
+			lives = def.totalLives;
+		}
+
+		// ret true if kill
+		public boolean hit() {
+			if (hitCooldown > 0)
+				return false;
+
+			hitCooldown = HIT_COOLDOWN_TIME;
+			flashTimer = HIT_FLASH_TIME;
+
+			lives--;
+
+			if (lives <= 0) {
+				kill();
+				return true;
+			}
+
+			return false;
 		}
 
 		public void kill() {
@@ -346,6 +379,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	private float mPosition; // camera Z position (add mPlayerZ to get player's absolute Z position).
 	private final float step = 1f / 60f;
 	private float mSpeed;
+
+	private float mMinLevelSpeed;
 	private float mMaxSpeed = mSegmentLength / step;
 
 	private float mSkyTime;
@@ -371,7 +406,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 
 		reset();
-		setupWorld01();
+		buildLevel(mGameOptions.levelNumber);
 	}
 
 	// --------------------------------------
@@ -411,20 +446,12 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 			if (ConstantsGame.START_GAME_IMMEDIATELY) {
 				reset();
-				setupWorld01();
+				buildLevel(mGameOptions.levelNumber);
 			} else {
 				screenManager.addScreen(new PauseScreen(screenManager, mSceneHeader, mGameOptions));
 			}
 
 			return;
-		}
-
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_FIRE)) {
-			addProjectile(mPlayerX, mPlayerAltitude, mPosition + mPlayerZ, 0, 1, 2000);
-		}
-
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_JUMP)) {
-			updatePlayerJump(core);
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_LEFT)) {
@@ -435,25 +462,58 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			mPlayerLane = MathHelper.clampi(++mPlayerLane, 0, NUM_LANES - 1);
 		}
 
+		if (!mGameState.hasGameStarted()) {
+			var fireButton = core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_FIRE);
+			var jumpButton = core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_JUMP);
+
+			var space = core.input().keyboard().isKeyDownTimed(GLFW.GLFW_KEY_SPACE, this);
+
+			if (space || fireButton || jumpButton) {
+				mGameState.startGame();
+			}
+
+			return;
+		}
+
+		// After this is only once the game has started
+
+		if (core.input().keyboard().isKeyDownTimed(GLFW.GLFW_KEY_LEFT_CONTROL, this)) {
+			mSpeed += 200;
+			if (mSpeed > 600) {
+				mSpeed = 600;
+			}
+		}
+
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_FIRE)) {
+			addProjectile(ProjectileDefinition.P_BULLET, mPlayerX, mPlayerAltitude, mPosition + mPlayerZ, 1);
+		}
+
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_JUMP)) {
+			updatePlayerJump(core);
+		}
+
 		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_FORWARD)) {
-			if (mSpeed < 200) {
-				mSpeed = 200;
+			if (mSpeed < mMinLevelSpeed) {
+				mSpeed = mMinLevelSpeed;
 			} else {
 				mSpeed *= 1.1f;
 
-				if (mSpeed > 300) {
-					mSpeed = 300;
+				if (mSpeed > mMaxSpeed) {
+					mSpeed = mMaxSpeed;
 				}
 			}
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_BACKWARD)) {
-			if (mSpeed > 100) {
+
+			if (ConstantsGame.IS_DEBUG_MODE)
+				mSpeed = 0;
+			else if (mSpeed > mMinLevelSpeed) {
 				mSpeed *= 0.99f;
+				if (mSpeed < mMinLevelSpeed)
+					mSpeed = mMinLevelSpeed;
 			}
-
 		}
-
 	}
 
 	// UPDATE
@@ -462,6 +522,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	public void update(LintfordCore core, boolean otherScreenHasFocus, boolean coveredByOtherScreen) {
 		super.update(core, otherScreenHasFocus, coveredByOtherScreen);
 
+		mPlayerX = getLaneOffsetX(mPlayerLane);
+
 		if (mGameState.hasGameEnded() || !mGameState.hasGameStarted())
 			return;
 
@@ -469,7 +531,6 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mSkyTime += dt * 1000 * 10;
 		mSkyTint = getSkyTint();
 
-		mPlayerX = getLaneOffsetX(mPlayerLane);
 		if (mPlayerHitCooldown > 0) {
 			mPlayerHitCooldown -= core.gameTime().elapsedTimeMilli();
 			if (mPlayerHitCooldown < 0)
@@ -508,11 +569,19 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		updatePlayerAltitude(core, playerSegment);
 		updatePlayerCollisions(core, playerSegment);
 
+		if (mSpeed > mMinLevelSpeed)
+			mSpeed *= 0.99f;
+		if (!ConstantsGame.IS_DEBUG_MODE && mGameState.hasGameStarted() && mSpeed < mMinLevelSpeed)
+			mSpeed = mMinLevelSpeed;
+
+		if (mSpeed > mMaxSpeed)
+			mSpeed *= 0.99f;
+
 		mPosition += mSpeed * dt;
 		mGameState.playerDistance(mPosition + mPlayerZ);
+		mGameState.speed(mSpeed);
 
 		// update the camera stuff
-
 		mCameraTargetZ = 10;
 		final var cameraSegment = findSegment(mPosition + mPlayerZ + mCameraTargetZ);
 		final var cameraPercent = ((mPosition + mPlayerZ + mCameraTargetZ) % mSegmentLength) / mSegmentLength;
@@ -626,7 +695,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		} else {
 			// no floor ?
 			G = 500.f;
-			mSpeed *= 0.95f;
+			// mSpeed *= 0.95f;
 		}
 
 		mPlayerYVel -= G * dt; // gravity
@@ -638,10 +707,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mPlayerYVel *= 0.995f;
 
 		if (!isFloored && mPlayerAltitude < segmentHeight - 5.f) {
-			System.out.println("You Dead!");
 			mGameState.removeHealth();
-
-			// TODO: need to restart the level or something ???
 		}
 
 	}
@@ -655,7 +721,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var isOnFloor = mPlayerAltitude - segmentHeight - 15 < 10.0f;
 
 		if (isFloored && isOnFloor) {
-			mPlayerYAcc += 200.0f;
+			mPlayerYAcc += JUMP_ALT_POWER;
 		}
 
 	}
@@ -707,12 +773,18 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 			if (CollisionExtensions.overlap(playerX, playerW, propX, propW)) {
 				entity.collisionAlive = false;
+
+				mGameState.removeHealth();
+
 			}
 		}
 	}
 
 	// only updates entities we can see
 	private void updateEntities(LintfordCore core) {
+
+		final var dt = (float) core.gameTime().elapsedTimeMilli() * 0.001f;
+
 		final var baseSegment = findSegment(mPosition);
 		final var numSegments = mTrackSegments.size();
 
@@ -733,23 +805,40 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 					}
 				}
 
+				if (entity.hitCooldown > 0) {
+					entity.hitCooldown -= core.gameTime().elapsedTimeMilli();
+
+					if (entity.flashTimer > 0) {
+						entity.flashTimer -= core.gameTime().elapsedTimeMilli();
+					}
+
+					if (entity.flashTimer <= 0) {
+						entity.flashTimer = HIT_FLASH_TIME;
+						entity.isFlashing = !entity.isFlashing;
+					}
+				}
+
 				// update movement
 				if (def.moveSpeed > 0) {
 					final var origSegment = findSegment(entity.zOffset);
-					final var dir = entity.forwards;
-					entity.zOffset += def.moveSpeed * dir;
+					entity.zOffset += -def.moveSpeed * dt;
 					final var newSegment = findSegment(entity.zOffset);
 
 					if (origSegment.index != newSegment.index) {
 						origSegment.entities.remove(entity);
 						newSegment.entities.add(entity);
 					}
+
+					if (entity.zOffset < mPosition) {
+						entity.kill();
+					}
+
 				}
 
 				if (def.shoots) {
 					final var s = (float) Math.pow(1f - (1f - 1f), 1f / 60f);
 					if (RandomNumbers.getRandomChance(s)) {
-						addProjectile(entity.xOffset, segment.p0.world.y, segment.p0.world.z - 10, TEAM_ENEMY_UID, -1, 1500);
+						addProjectile(ProjectileDefinition.E_BULLET, entity.xOffset, segment.p0.world.y, segment.p0.world.z - 10, -1);
 					}
 				}
 
@@ -830,7 +919,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 							origSegment.projectiles.remove(projectile);
 
 							mGameState.addKill();
-							entity.kill();
+							entity.hit();
 						}
 					}
 				}
@@ -893,6 +982,15 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mScreenBuffer.draw(core);
 
 		super.draw(core);
+
+		if (!mGameState.hasGameStarted()) {
+			final var spriteBatch = mRendererManager.sharedResources().uiSpriteBatch();
+			spriteBatch.begin(core.gameCamera());
+			final var frame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.PRESS_SPACE);
+
+			spriteBatch.draw(mGameSpriteSheet, frame, -frame.width() / 2, -frame.height() / 2, frame.width(), frame.height(), 1.f);
+			spriteBatch.end();
+		}
 
 		// Debug Drawers
 		final var debugSegment = findSegment(mPosition);
@@ -1173,7 +1271,6 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var texture = mGameSpriteSheet.texture();
 
 		{
-
 			final var srcX = (int) playerFrame.x();
 			final var srcY = (int) playerFrame.y();
 			final var srcW = (int) playerFrame.width();
@@ -1200,7 +1297,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 			final var floorHeight = (int) InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
 
-			final var shadowScale = InterpolationHelper.lerp(1.5f, 0.15f, mPlayerAltitude / (floorHeight + 100));
+			final var shadowScale = InterpolationHelper.lerp(1.5f, 0.15f, mPlayerAltitude / (floorHeight + 100)) * .5f;
 
 			mScreenBuffer.copyPixelsAtlas(texture.ARGBColorData(), // Src pixels
 					srcX, srcY, srcW, srcH, texture.getTextureWidth(), // src rect
@@ -1306,10 +1403,15 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 					int srcW = (int) spriteFrame.width();
 					int srcH = (int) spriteFrame.height();
 
+					int col = 0xffcfcfcf;
+					if (entity.hitCooldown > 0 && entity.isFlashing) {
+						col = 0xffffffff;
+					}
+
 					mScreenBuffer.copyPixelsAtlas(srcPixels, // Src pixels
 							srcX, srcY, srcW, srcH, textureWidth, // src rect
 							(int) destX, (int) destY, (int) destW, (int) destH, // dest rect
-							entityZ, 0xffcfcfcf, false);
+							entityZ, col, false);
 				}
 
 				{
@@ -1408,171 +1510,6 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mPlayerZ = mCameraHeight * mCameraDepth;
 	}
 
-	private void setupWorld01() {
-		// track
-		TrackSegment.resetIndexCounter();
-		mTrackSegments.clear();
-
-		// @formatter:off
-		final var testHillHeight = 40;
-		final var turnMod = 5.f;
-		
-		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
-		addRoad(0, 	20, 	0, 		0 * turnMod, 		testHillHeight);
-		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
-		addRoad(0, 	20, 	0, 		0 * turnMod, 		-testHillHeight);
-		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
-		
-		addRoad(0, 	20, 	0, 		-.3f * turnMod, 	testHillHeight / 2);
-		addRoad(0, 	20, 	10,		-.6f * turnMod, 	testHillHeight / 2);
-		addRoad(0, 	20,   	0, 		1.f * turnMod, 		testHillHeight / 4);
-		addRoad(0, 	20,   	0, 		0f * turnMod, 		-testHillHeight / 4);
-		addRoad(0, 10,  	0, 		-.6f * turnMod, 	testHillHeight);
-		
-		addRoad(0, 30,  	0, 		0f * turnMod, 		0);
-		addRoad(0, 30,  	0, 		0f * turnMod, 		testHillHeight / 2);
-		addRoad(0, 40,  	0, 		0f * turnMod, 		0);
-		// @formatter:on
-
-		addProp(PropDefinition.COIN, 40, 0);
-		addProp(PropDefinition.COIN, 42, 0);
-		addProp(PropDefinition.COIN, 44, 0);
-
-		addProp(PropDefinition.COIN, 40, 3);
-		addProp(PropDefinition.COIN, 42, 3);
-		addProp(PropDefinition.COIN, 44, 3);
-
-		addProp(PropDefinition.COIN, 75, 1);
-		addProp(PropDefinition.COIN, 76, 1);
-		addProp(PropDefinition.COIN, 77, 1);
-		addProp(PropDefinition.COIN, 75, 2);
-		addProp(PropDefinition.COIN, 76, 2);
-		addProp(PropDefinition.COIN, 77, 2);
-
-		addProp(PropDefinition.COIN, 86, 0);
-		addProp(PropDefinition.COIN, 88, 1);
-		addProp(PropDefinition.COIN, 90, 2);
-		addProp(PropDefinition.COIN, 92, 3);
-		addProp(PropDefinition.COIN, 94, 3);
-		addProp(PropDefinition.COIN, 96, 3);
-
-		addProp(PropDefinition.WALL, 98, 2);
-		addProp(PropDefinition.WALL, 98, 3);
-
-		addProp(PropDefinition.WALL, 104, 0);
-		addProp(PropDefinition.WALL, 104, 2);
-
-		for (int i = 145; i < 150; i++) {
-			addProp(PropDefinition.COIN, i, 0);
-			addProp(PropDefinition.COIN, i + 20, 2);
-			addProp(PropDefinition.COIN, i + 40, 3);
-
-			digOutSegments(i + 40, 10, 0);
-		}
-
-		digOutSegments(220, 3, 0);
-		digOutSegments(225, 3, 3);
-		digOutSegments(240, 3, 2);
-		digOutSegments(245, 3, 1);
-		digOutSegments(255, 3, 3);
-		addProp(PropDefinition.WALL, 261, 1);
-		addProp(PropDefinition.WALL, 260, 0);
-		digOutSegments(257, 3, 0);
-
-		addProp(PropDefinition.COIN, 240, 3);
-		addProp(PropDefinition.COIN, 242, 3);
-
-		// to collect 500
-
-		// mPosition = 210 * mSegmentLength;
-
-		// TODO: These little fuckers need to shoot and move
-//		addEntity(EntityDefinition.NORMAL, 220, 2);
-//		addEntity(EntityDefinition.NORMAL, 222, 3);
-//		addEntity(EntityDefinition.NORMAL, 224, 4);
-//		addEntity(EntityDefinition.SHOOTER, 226, 3);
-
-		final var numSegments = mTrackSegments.size();
-		for (int i = 0; i < numSegments; i++) {
-			mTrackSegments.get(i).variation = (i % 2);
-		}
-
-		mTrackLength = mTrackSegments.size() * mSegmentLength;
-		mGameState.startGame(mTrackLength);
-
-	}
-
-	private void setupWorld_bak() {
-		// track
-		TrackSegment.resetIndexCounter();
-		mTrackSegments.clear();
-
-		final var testHillHeight = 120;
-		final var turnMod = 4.f;
-		addRoad(0, 4, 0, 0 * turnMod, 0);
-		addRoad(10, 30, 10, 0 * turnMod, testHillHeight * 1.4f);
-		addRoad(0, 30, 0, .5f * turnMod, -testHillHeight / 4);
-		addRoad(0, 20, 0, 0f * turnMod, -testHillHeight / 4);
-		addRoad(10, 30, 10, -.6f * turnMod, testHillHeight);
-		addRoad(10, 30, 10, .8f * turnMod, -testHillHeight);
-		addRoad(10, 30, 10, -.3f * turnMod, testHillHeight);
-		addRoad(30, 100, 0, -0.1f * turnMod, -testHillHeight);
-		addRoad(30, 75, 0, .3f * turnMod, -testHillHeight / 2);
-		addRoad(60, 50, 20, .3f * turnMod, 0);
-		addRoad(0, 75, 0, .4f * turnMod, testHillHeight * 2);
-		addRoad(0, 75, 0, 0 * turnMod, testHillHeight);
-
-//		final var testHillHeight = 20;
-//		addRoad(0, 20, 0, 0, 0);
-//		addRoad(0, 10, 0, -1.5f, 0);
-//		addRoad(0, 10, 0, 1.5f, 0);
-//		addRoad(0, 10, 0, -1.5f, 0);
-//		addRoad(0, 20, 0, .5f, testHillHeight);
-//		addRoad(0, 20, 0, 1.5f, testHillHeight * 3);
-//		addRoad(0, 20, 0, 0, 0);
-//		addRoad(0, 20, 0, 2.5f, testHillHeight);
-//		addRoad(0, 40, 0, 0, -testHillHeight * 6);
-//		addRoad(0, 40, 0, 0, -testHillHeight * 3);
-
-		digOutSegments(20, 5, 3);
-		digOutSegments(100, 10, 0);
-		digOutSegments(100, 10, 1);
-
-		// TODO: Need to obstruct your path
-		addProp(PropDefinition.WALL, 100, 0);
-		addProp(PropDefinition.WALL, 100, 1);
-
-		// TODO: Need to be collectable
-		addProp(PropDefinition.COIN, 30, 2);
-		addProp(PropDefinition.COIN, 22, 2);
-		addProp(PropDefinition.COIN, 34, 2);
-		addProp(PropDefinition.COIN, 36, 2);
-		addProp(PropDefinition.COIN, 38, 2);
-		addProp(PropDefinition.COIN, 40, 2);
-
-		addProp(PropDefinition.COIN, 50, 2);
-		addProp(PropDefinition.COIN, 52, 2);
-		addProp(PropDefinition.COIN, 54, 2);
-		addProp(PropDefinition.COIN, 56, 2);
-		addProp(PropDefinition.COIN, 58, 2);
-		addProp(PropDefinition.COIN, 50, 2);
-
-		// TODO: These little fuckers need to shoot and move
-		addEntity(EntityDefinition.NORMAL, 120, 2);
-		addEntity(EntityDefinition.NORMAL, 130, 3);
-		addEntity(EntityDefinition.NORMAL, 140, 4);
-//		addEntity(EntityDefinition.SHOOTER, 110, 3);
-		addEntity(EntityDefinition.NORMAL, 150, 3);
-
-		final var numSegments = mTrackSegments.size();
-		for (int i = 0; i < numSegments; i++) {
-			mTrackSegments.get(i).variation = (i % 2);
-		}
-
-		mTrackLength = mTrackSegments.size() * mSegmentLength;
-		mGameState.startGame(mTrackLength);
-	}
-
 	private void addRoad(int enter, int hold, int leave, float curve, float height) {
 
 		var startY = lastSegmentHeight();
@@ -1626,14 +1563,19 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		segment.props.add(newProp);
 	}
 
-	private void addProjectile(float offsetX, float yOffset, float offsetZ, int owner, int forwards, float life) {
-		final var segment = findSegment(offsetZ);
+	private void addProjectile(ProjectileDefinition def, float offsetX, float yOffset, float zOffset, int direction) {
+		if (direction == 0) {
+			Debug.debugManager().logger().w(GameScreen.class.getSimpleName(), "Someone is shooting projectiles with no direction!");
+			return;
+		}
+
+		final var segment = findSegment(zOffset);
 		final var projectile = getFreeProjectile();
 
 		if (projectile == null)
 			return;
 
-		projectile.init(ProjectileDefinition.BULLET, offsetX, yOffset, offsetZ, owner, forwards, life);
+		projectile.init(def, offsetX, yOffset, zOffset, direction);
 		segment.projectiles.add(projectile);
 
 		// global add for update
@@ -1643,10 +1585,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 	private void addEntity(EntityDefinition def, int segmentUid, int laneNum) {
 		final var newEntity = new TrackEntity();
-		newEntity.init(def, getLaneOffsetX(laneNum), laneNum);
+		newEntity.init(def, getLaneOffsetX(laneNum), segmentUid * mSegmentLength);
 
 		final var segment = getSegment(segmentUid);
 		segment.entities.add(newEntity);
+
+		// global update list
+		mEntities.add(newEntity);
 	}
 
 	private TrackSegment getSegment(int index) {
@@ -1727,5 +1672,184 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	@Override
 	public void onGameLost() {
 		screenManager.addScreen(new LostScreen(screenManager, mSceneHeader, mGameOptions));
+	}
+
+	// LEVELS --------------------------------------
+
+	private void buildLevel(int levelNum) {
+		TrackSegment.resetIndexCounter();
+		mTrackSegments.clear();
+
+		mEntities.clear();
+
+		switch (levelNum) {
+		default:
+		case 0:
+			setupWorld_Tutorial();
+			break;
+
+		case 1:
+			setupWorld_0(); // easy
+			break;
+		case 2:
+			setupWorld_0(); // hard
+			break;
+		}
+
+		finalizeBuild();
+	}
+
+	private void finalizeBuild() {
+		mPosition = 0 * mSegmentLength;
+
+		final var numSegments = mTrackSegments.size();
+		for (int i = 0; i < numSegments; i++) {
+			mTrackSegments.get(i).variation = (i % 2);
+		}
+
+		mTrackLength = mTrackSegments.size() * mSegmentLength;
+		mGameState.readyGame(mTrackLength);
+	}
+
+	private void setupWorld_Tutorial() {
+		mMinLevelSpeed = 50;
+		mMaxSpeed = 250;
+
+		// @formatter:off
+		final var testHillHeight = 40;
+		final var turnMod = 5.f;
+		
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		testHillHeight);
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		-testHillHeight);
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
+		
+		addRoad(0, 	20, 	0, 		-.3f * turnMod, 	testHillHeight / 2);
+		addRoad(0, 	20, 	10,		-.6f * turnMod, 	testHillHeight / 2);
+		addRoad(0, 	20,   	0, 		1.f * turnMod, 		testHillHeight / 4);
+		addRoad(0, 	20,   	0, 		0f * turnMod, 		-testHillHeight / 4);
+		addRoad(0, 10,  	0, 		-.6f * turnMod, 	testHillHeight);
+		
+		addRoad(0, 30,  	0, 		0f * turnMod, 		0);
+		addRoad(0, 30,  	0, 		0f * turnMod, 		testHillHeight / 2);
+		addRoad(0, 40,  	0, 		0f * turnMod, 		0);
+		// @formatter:on
+
+		addProp(PropDefinition.COIN, 40, 0);
+		addProp(PropDefinition.COIN, 42, 0);
+		addProp(PropDefinition.COIN, 44, 0);
+
+		addProp(PropDefinition.COIN, 40, 3);
+		addProp(PropDefinition.COIN, 42, 3);
+		addProp(PropDefinition.COIN, 44, 3);
+
+		addProp(PropDefinition.COIN, 75, 1);
+		addProp(PropDefinition.COIN, 76, 1);
+		addProp(PropDefinition.COIN, 77, 1);
+		addProp(PropDefinition.COIN, 75, 2);
+		addProp(PropDefinition.COIN, 76, 2);
+		addProp(PropDefinition.COIN, 77, 2);
+
+		addProp(PropDefinition.COIN, 86, 0);
+		addProp(PropDefinition.COIN, 88, 1);
+		addProp(PropDefinition.COIN, 90, 2);
+		addProp(PropDefinition.COIN, 92, 3);
+		addProp(PropDefinition.COIN, 94, 3);
+		addProp(PropDefinition.COIN, 96, 3);
+
+		addProp(PropDefinition.WALL, 98, 2);
+		addProp(PropDefinition.WALL, 98, 3);
+
+		addProp(PropDefinition.WALL, 104, 0);
+		addProp(PropDefinition.WALL, 104, 2);
+
+		for (int i = 145; i < 150; i++) {
+			addProp(PropDefinition.COIN, i, 0);
+			addProp(PropDefinition.COIN, i + 20, 2);
+			addProp(PropDefinition.COIN, i + 40, 3);
+
+			digOutSegments(i + 40, 10, 0);
+		}
+
+		digOutSegments(220, 3, 0);
+		digOutSegments(225, 3, 3);
+		digOutSegments(240, 3, 2);
+		digOutSegments(245, 3, 1);
+		digOutSegments(255, 3, 3);
+		addProp(PropDefinition.WALL, 261, 1);
+		addProp(PropDefinition.WALL, 260, 0);
+		digOutSegments(257, 3, 0);
+
+		addProp(PropDefinition.COIN, 240, 3);
+		addProp(PropDefinition.COIN, 242, 3);
+
+		// TODO: Set to collect amount
+		// to collect 500
+
+	}
+
+	private void setupWorld_0() {
+		mMinLevelSpeed = 150;
+		mMaxSpeed = 250;
+
+		// @formatter:off
+		final var testHillHeight = 60;
+		final var turnMod = 5.f;
+		
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
+		addRoad(0, 	30, 	0, 		-.4f * turnMod, 		testHillHeight);
+		addRoad(0, 	25, 	0, 		.4f * turnMod, 		-testHillHeight / 2f);
+		addRoad(0, 	20, 	0, 		.4f * turnMod, 		testHillHeight);
+		addRoad(0, 	20, 	0, 		.6f * turnMod, 		0);
+		
+		addRoad(0, 	20, 	0, 		-.3f * turnMod, 	testHillHeight / 2);
+		addRoad(0, 	20, 	10,		-.6f * turnMod, 	testHillHeight / 2);
+		addRoad(0, 	20,   	0, 		1.f * turnMod, 		testHillHeight / 4);
+		addRoad(0, 	20,   	0, 		0f * turnMod, 		-testHillHeight / 4);
+		addRoad(0, 10,  	0, 		-.6f * turnMod, 	testHillHeight);
+		
+		addRoad(0, 30,  	0, 		0f * turnMod, 		0);
+		addRoad(0, 30,  	0, 		0f * turnMod, 		testHillHeight / 2);
+		addRoad(0, 40,  	0, 		0f * turnMod, 		0);
+		// @formatter:on
+
+		digOutSegments(20, 5, 3);
+		digOutSegments(40, 10, 0);
+		digOutSegments(70, 10, 1);
+		digOutSegments(80, 10, 2);
+
+		digOutSegments(111, 4, 0);
+		digOutSegments(111, 4, 1);
+		digOutSegments(111, 4, 2);
+		digOutSegments(111, 4, 3);
+
+		digOutSegments(113, 4, 1);
+		digOutSegments(113, 4, 2);
+
+		addProp(PropDefinition.WALL, 100, 0);
+		addProp(PropDefinition.WALL, 100, 1);
+
+		addProp(PropDefinition.COIN, 30, 2);
+		addProp(PropDefinition.COIN, 22, 2);
+		addProp(PropDefinition.COIN, 34, 2);
+		addProp(PropDefinition.COIN, 36, 2);
+		addProp(PropDefinition.COIN, 38, 2);
+		addProp(PropDefinition.COIN, 40, 2);
+
+		addProp(PropDefinition.COIN, 50, 2);
+		addProp(PropDefinition.COIN, 52, 2);
+		addProp(PropDefinition.COIN, 54, 2);
+		addProp(PropDefinition.COIN, 56, 2);
+		addProp(PropDefinition.COIN, 58, 2);
+		addProp(PropDefinition.COIN, 50, 2);
+
+		addEntity(EntityDefinition.NORMAL, 120, 2);
+		addEntity(EntityDefinition.NORMAL, 130, 3);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 145, 0);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 145, 1);
+//		addEntity(EntityDefinition.SHOOTER, 110, 3);
+		addEntity(EntityDefinition.NORMAL, 150, 3);
+
 	}
 }

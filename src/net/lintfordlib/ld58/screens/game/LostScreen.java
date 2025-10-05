@@ -65,6 +65,7 @@ public class LostScreen extends MenuScreen {
 
 		mIsPopup = false;
 		mShowBackgroundScreens = true;
+		mESCBackEnabled = false;
 
 		mBlockGamepadInputInBackground = true;
 		mBlockKeyboardInputInBackground = true;

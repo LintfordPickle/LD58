@@ -23,10 +23,15 @@ public class GameOptions {
 	public int resources;
 	public int difficulty;
 
+	public int levelNumber;
+	public int totalLevels;
+
 	// --------------------------------------
 	// Constructor
 	// --------------------------------------
 
 	public GameOptions() {
+		// TODO: get this from the main menu (or incrmenet in win screen).
+		levelNumber = 1;
 	}
 }

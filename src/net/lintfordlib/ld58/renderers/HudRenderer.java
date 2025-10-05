@@ -8,6 +8,7 @@ import net.lintfordlib.core.graphics.textures.Texture;
 import net.lintfordlib.core.rendering.RenderPass;
 import net.lintfordlib.ld58.ConstantsGame;
 import net.lintfordlib.ld58.controllers.GameStateController;
+import net.lintfordlib.ld58.data.GameState;
 import net.lintfordlib.ld58.data.HudTextureNames;
 import net.lintfordlib.renderers.BaseRenderer;
 import net.lintfordlib.renderers.RendererManagerBase;
@@ -94,7 +95,6 @@ public class HudRenderer extends BaseRenderer {
 	public void draw(LintfordCore core, RenderPass renderPass) {
 		final var hudBounds = core.gameCamera().boundingRectangle();
 		final var textureBatch = mRendererManager.sharedResources().uiSpriteBatch();
-		final var backgroundFrame = mHudSpriteSheet.getSpriteFrame(HudTextureNames.PANEL);
 		final var healthFrame = mHudSpriteSheet.getSpriteFrame(HudTextureNames.HEALTH);
 
 		final var gameState = mGameStateController.gameState();
@@ -102,16 +102,21 @@ public class HudRenderer extends BaseRenderer {
 		textureBatch.begin(core.gameCamera());
 		textureBatch.setColorWhite();
 
-		textureBatch.draw(mHudSpriteSheet, backgroundFrame, hudBounds.left(), hudBounds.top(), hudBounds.width(), 32.f, 5.f);
-
-		int lives = 4;
+		int lives = GameState.MAX_HEALTH;
 		for (int i = 0; i < lives; i++) {
 			float xx = hudBounds.left() + 10 + i * 18;
 			float yy = hudBounds.top() + 10;
+
+			if (i < gameState.health()) {
+				textureBatch.setColorWhite();
+			} else {
+				textureBatch.setColorBlack();
+			}
+
 			textureBatch.draw(mHudSpriteSheet, healthFrame, xx, yy, 16, 16, 5.f);
 		}
 
-		textureBatch.setColorBlack();
+		textureBatch.setColorWhite();
 
 		// Distance
 		final var distTotal = gameState.trackLength();
@@ -127,6 +132,11 @@ public class HudRenderer extends BaseRenderer {
 		final var scoreWidth = String.valueOf(score).length() * 16;
 
 		mCharAtlasRenderer.drawNumber(textureBatch, score, hudBounds.centerX() - scoreWidth / 2, hudBounds.top() + 11, 0.3f, .9f);
+
+		// Speed
+		final var speed = gameState.speed();
+		mCharAtlasRenderer.drawNumber(textureBatch, (int) speed, hudBounds.left() + 10, hudBounds.top() + 32, 0.3f, .5f);
+
 		textureBatch.end();
 	}
 }

@@ -8,6 +8,8 @@ public class GameState {
 	// Constants
 	// --------------------------------------
 
+	public static final int MAX_HEALTH = 3;
+
 	// --------------------------------------
 	// Variables
 	// --------------------------------------
@@ -22,9 +24,19 @@ public class GameState {
 	private float mTrackLengthTotal;
 	private float mPlayerDistance;
 
+	private float mSpeed;
+
 	// --------------------------------------
 	// Properties
 	// --------------------------------------
+
+	public float speed() {
+		return mSpeed;
+	}
+
+	public void speed(float speed) {
+		mSpeed = speed;
+	}
 
 	public boolean hasGameStarted() {
 		return mHasGameStarted;
@@ -73,24 +85,26 @@ public class GameState {
 		mPlayerDistance = 0;
 		mCoins = 0;
 		mEnemiesKilled = 0;
-		mHealth = 3;
+		mHealth = MAX_HEALTH;
 
 		mHasGameStarted = false;
 		mHasGameEnded = false;
 	}
 
-	public void startGame(float trackLength) {
+	public void readyGame(float trackLength) {
+		mHealth = MAX_HEALTH;
+		mTrackLengthTotal = trackLength;
+	}
+
+	public void startGame() {
 		if (mHasGameStarted) {
 			Debug.debugManager().logger().w(GameState.class.getSimpleName(), "Game has already been started!");
 			return;
 		}
 
-		if (mHasGameEnded) {
+		if (mHasGameEnded)
 			reset();
-		}
 
-		mHealth = 3;
-		mTrackLengthTotal = trackLength;
 		mHasGameStarted = true;
 	}
 
@@ -104,7 +118,7 @@ public class GameState {
 	}
 
 	public int getScore() {
-		return (int)( mCoins * 20 + mEnemiesKilled * 50);
+		return (int) (mCoins * 20 + mEnemiesKilled * 50);
 	}
 
 	public void addCoins(int amt) {
