@@ -3,6 +3,7 @@ package net.lintfordlib.ld58.screens.game;
 import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.ColorConstants;
 import net.lintfordlib.data.scene.SceneHeader;
+import net.lintfordlib.ld58.ConstantsGame;
 import net.lintfordlib.ld58.data.GameOptions;
 import net.lintfordlib.ld58.screens.MainMenu;
 import net.lintfordlib.ld58.screens.menu.CreditsScreen;
@@ -46,10 +47,11 @@ public class WonScreen extends MenuScreen {
 		layout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
 		layout.setDrawBackground(false, ColorConstants.WHITE());
 
-		// TODO: Next level
+		final var nextLevelAvailable = gameOptions.levelNumber < ConstantsGame.NUM_LEVELS;
+
 		final var nextButton = new MenuEntry(screenManager, this, "Next");
 		nextButton.registerClickListener(this, SCREEN_BUTTON_NEXT);
-		nextButton.enabled(false);
+		nextButton.enabled(nextLevelAvailable);
 
 		final var restartButton = new MenuEntry(screenManager, this, "Restart");
 		restartButton.registerClickListener(this, SCREEN_BUTTON_RESTART);
@@ -102,17 +104,22 @@ public class WonScreen extends MenuScreen {
 	@Override
 	protected void handleOnClick() {
 		switch (mClickAction.consume()) {
-		case SCREEN_BUTTON_NEXT:
-			exitScreen();
-			return;
-
-		case SCREEN_BUTTON_RESTART:
+		case SCREEN_BUTTON_NEXT: {
+			mGameOptions.levelNumber++;
 			final var lLoadingScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
 			screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lLoadingScreen));
+		}
+			return;
+
+		case SCREEN_BUTTON_RESTART: {
+			final var lLoadingScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
+			screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lLoadingScreen));
+		}
 			break;
 
-		case SCREEN_BUTTON_EXIT:
+		case SCREEN_BUTTON_EXIT: {
 			screenManager.createLoadingScreen(new LoadingScreen(screenManager, false, false, new CreditsScreen(screenManager), new MainMenu(screenManager)));
+		}
 			break;
 
 		}

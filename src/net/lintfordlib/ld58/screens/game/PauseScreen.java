@@ -44,7 +44,7 @@ public class PauseScreen extends MenuScreen {
 
 		final var lLayout = new ListLayout(this);
 		lLayout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
-		lLayout.setDrawBackground(true, ColorConstants.WHITE());
+		lLayout.setDrawBackground(false, ColorConstants.WHITE());
 		lLayout.showTitle(true);
 		lLayout.title("Paused");
 
@@ -63,8 +63,8 @@ public class PauseScreen extends MenuScreen {
 		lLayout.addMenuEntry(lContinueEntry);
 		lLayout.addMenuEntry(lRestartEntry);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
-		lLayout.addMenuEntry(lOptionsEntry);
-		lLayout.addMenuEntry(MenuEntry.menuSeparator());
+//		lLayout.addMenuEntry(lOptionsEntry);
+//		lLayout.addMenuEntry(MenuEntry.menuSeparator());
 		lLayout.addMenuEntry(lExitToMenuEntry);
 
 		mLayouts.add(lLayout);

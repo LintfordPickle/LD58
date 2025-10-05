@@ -25,17 +25,18 @@ public class ConstantsGame {
 	// Game
 	// ---------------------------------------------
 
+	public static final int NUM_LEVELS = 2;
 	public static final boolean LOCK_ZOOM_TO_ONE = true;
 
 	// ---------------------------------------------
 	// Debug
 	// ---------------------------------------------
 
-	public static final boolean IS_DEBUG_MODE = true;
+	public static final boolean IS_DEBUG_MODE = false;
 	public static final boolean IS_DEBUG_RENDERING_MODE = true;
 
 	public static final boolean CAMERA_DEBUG_MODE = true;
 
-	public static final boolean START_GAME_IMMEDIATELY = true;
+	public static final boolean START_GAME_IMMEDIATELY = false;
 
 }

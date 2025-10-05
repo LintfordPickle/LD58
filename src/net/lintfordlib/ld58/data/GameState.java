@@ -22,6 +22,7 @@ public class GameState {
 	private boolean mHasGameEnded;
 
 	private float mTrackLengthTotal;
+	private float mEndLevelDistance;
 	private float mPlayerDistance;
 
 	private float mSpeed;
@@ -69,6 +70,10 @@ public class GameState {
 	public float trackLength() {
 		return mTrackLengthTotal;
 	}
+	
+	public float endTrackDistance() {
+		return mEndLevelDistance;
+	}
 
 	// --------------------------------------
 	// Constructor
@@ -91,9 +96,10 @@ public class GameState {
 		mHasGameEnded = false;
 	}
 
-	public void readyGame(float trackLength) {
+	public void readyGame(float trackLength, float endTrackLength) {
 		mHealth = MAX_HEALTH;
 		mTrackLengthTotal = trackLength;
+		mEndLevelDistance = endTrackLength;
 	}
 
 	public void startGame() {

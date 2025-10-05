@@ -75,8 +75,7 @@ public class GameStateController extends BaseController {
 			return;
 		}
 
-		if (mGameState.playerDistance() >= mGameState.trackLength()) {
-
+		if (mGameState.playerDistance() >= mGameState.endTrackDistance()) {
 			Debug.debugManager().logger().w(GameStateController.class.getSimpleName(), "Game wonstate initiated");
 
 			mGameState.endGame();

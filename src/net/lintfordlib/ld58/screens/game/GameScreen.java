@@ -259,7 +259,6 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 			final var cosPitch = (float) Math.cos(pitch);
 			final var sinPitch = (float) Math.sin(pitch);
 
-			final var y = camera.y * cosPitch - zYaw * sinPitch;
 			final var z = camera.y * sinPitch + zYaw * cosPitch;
 
 			camera.x = xYaw;
@@ -373,7 +372,6 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 	private float mPlayerYAcc;
 	private float mPlayerJumpCooldown;
 	private float mPlayerYVel;
-	private float mPlayerY;
 	private float mPlayerZ; // (computed) player relative z distance from camera
 
 	private float mPlayerHitCooldown;
@@ -384,6 +382,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 	private final float step = 1f / 60f;
 	private float mSpeed;
 
+	private float mLevelEndDist;
 	private float mMinLevelSpeed;
 	private float mMaxSpeed = mSegmentLength / step;
 
@@ -499,8 +498,10 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_FORWARD)) {
 			if (mSpeed < mMinLevelSpeed) {
 				mSpeed = mMinLevelSpeed;
-			} else {
-				mSpeed *= 1.1f;
+			}
+
+			{
+				mSpeed += 10.f;
 
 				if (mSpeed > mMaxSpeed) {
 					mSpeed = mMaxSpeed;
@@ -510,10 +511,11 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_BACKWARD)) {
 
-			if (ConstantsGame.IS_DEBUG_MODE)
-				mSpeed = 0;
-			else if (mSpeed > mMinLevelSpeed) {
-				mSpeed *= 0.99f;
+//			if (ConstantsGame.IS_DEBUG_MODE)
+//				mSpeed = 0;
+//			else 
+			if (mSpeed > mMinLevelSpeed) {
+				mSpeed -= 2.f;
 				if (mSpeed < mMinLevelSpeed)
 					mSpeed = mMinLevelSpeed;
 			}
@@ -1005,13 +1007,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 			spriteBatch.end();
 		}
 
-		// Debug Drawers
-		final var debugSegment = findSegment(mPosition);
-		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "pos: " + mPosition, -150, -10, .5f);
-		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "id: " + debugSegment.index, -150, 0, .5f);
-//		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "seg.cur: " + debugSegment.curve, -150, 0, .5f);
-//		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "p0.cur: " + debugSegment.p0.curvature, -150, 10, .5f);
-//		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "p1.cur: " + debugSegment.p1.curvature, -150, 20, .5f);
+		if (ConstantsGame.CAMERA_DEBUG_MODE) {
+
+			final var debugSegment = findSegment(mPosition + mPlayerZ);
+			Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "pos: " + mPosition, -150, -10, .5f);
+			Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "id: " + debugSegment.index, -150, 0, .5f);
+
+		}
 
 	}
 
@@ -1173,7 +1175,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		final var r1 = p1.screen.z / 30.0f;
 		
 		final var fog_md = (int)(mDrawDistance * mSegmentLength * .7f);
-		final var fog_d = mPosition + mPlayerZ + fog_md * .25f;
+		final var fog_d = mPosition + mPlayerZ + fog_md * .5f;
 
 		// Animated projection
 //		final var srcBuffer = mArrowTexture.ARGBColorData();
@@ -1708,14 +1710,12 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 			setupWorld_0(); // easy
 			break;
 		case 2:
-			setupWorld_0(); // hard
+			setupWorld_1(); // hard
 			break;
 		}
 
 		finalizeBuild();
 	}
-
-	private static final int mDebugStartOnSegmentId = 0;
 
 	private void finalizeBuild() {
 		if (ConstantsGame.IS_DEBUG_MODE) {
@@ -1730,12 +1730,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		}
 
 		mTrackLength = mTrackSegments.size() * mSegmentLength;
-		mGameState.readyGame(mTrackLength);
+		mLevelEndDist = mTrackLength - 10 * mSegmentLength;
+		mGameState.readyGame(mTrackLength, mLevelEndDist);
 	}
 
-	private void setupWorld_Tutorial() {
+	private void setupWorld_Tutorial() { // tutorial
 		mMinLevelSpeed = 50;
-		mMaxSpeed = 250;
+		mMaxSpeed = 200;
 
 		// @formatter:off
 		final var testHillHeight = 40;
@@ -1811,7 +1812,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 	}
 
-	private void setupWorld_0() {
+	private void setupWorld_0() { // medium
 		mMinLevelSpeed = 100;
 		mMaxSpeed = 150;
 
@@ -1881,13 +1882,12 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 		addEntity(EntityDefinition.NORMAL, 185, 1);
 		addEntity(EntityDefinition.NORMAL, 185, 2);
-		
+
 		addProp(PropDefinition.COIN, 200, 2);
 		addProp(PropDefinition.COIN, 198, 3);
-		
+
 		addProp(PropDefinition.WALL, 195, 0);
 		addProp(PropDefinition.WALL, 195, 1);
-		
 
 		digOutSegments(222, 3, 0);
 		digOutSegments(222, 3, 1);
@@ -1897,10 +1897,10 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 		addEntity(EntityDefinition.BLOCKER_SHOOTER, 235, 2);
 		addEntity(EntityDefinition.BLOCKER_SHOOTER, 235, 3);
-		
+
 		addEntity(EntityDefinition.BLOCKER_SHOOTER, 282, 0);
 		addEntity(EntityDefinition.BLOCKER_SHOOTER, 282, 3);
-		
+
 		addEntity(EntityDefinition.NORMAL, 289, 1);
 		addEntity(EntityDefinition.NORMAL, 289, 2);
 
@@ -1918,23 +1918,162 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		digOutSegments(244, 2, 1);
 		digOutSegments(244, 2, 2);
 		digOutSegments(244, 2, 3);
-		
+
 		digOutSegments(252, 2, 0);
 		digOutSegments(250, 2, 1);
 		digOutSegments(250, 2, 2);
 		digOutSegments(252, 2, 3);
-		
+
 		digOutSegments(260, 4, 0);
 		digOutSegments(260, 2, 1);
 		digOutSegments(260, 2, 2);
 		digOutSegments(260, 4, 3);
-		
+
 //		digOutSegments(260, 4, 0);
 		digOutSegments(266, 2, 1);
 		digOutSegments(266, 2, 2);
 //		digOutSegments(260, 4, 3);
+
+		addProp(PropDefinition.COIN, 155, 0);
+		addProp(PropDefinition.COIN, 156, 0);
+		addProp(PropDefinition.COIN, 157, 0);
+		addProp(PropDefinition.COIN, 158, 0);
+		addProp(PropDefinition.COIN, 159, 0);
+		addProp(PropDefinition.COIN, 160, 0);
+
+//		addEntity(EntityDefinition.SHOOTER, 110, 3);
+		addEntity(EntityDefinition.NORMAL, 150, 3);
+
+	}
+
+	private static final int mDebugStartOnSegmentId = 0;
+
+	private void setupWorld_1() { // hard
+		mMinLevelSpeed = 0;
+		mMaxSpeed = 150;
+
+		// @formatter:off
+		final var testHillHeight = 60;
+		final var turnMod = 6.f;
 		
+		addRoad(0, 	25, 	0, 		0 * turnMod, 		0);
+		addRoad(0, 	25, 	0, 		.5f * turnMod, 		testHillHeight);
+		addRoad(0, 	25, 	0, 		-.4f * turnMod, 	-testHillHeight);
+		addRoad(0, 	25, 	0, 		-.4f * turnMod, 	testHillHeight*2);
+		addRoad(0, 	30, 	0, 		-.6f * turnMod, 	-testHillHeight);
 		
+		addRoad(0, 	20, 	0, 		.3f * turnMod, 		-testHillHeight);
+		addRoad(0, 	20, 	0,		-.6f * turnMod, 	testHillHeight);
+		addRoad(0, 	20,   	0, 		1.f * turnMod, 		testHillHeight / 4);
+		addRoad(0, 	20,   	0, 		0.5f * turnMod, 	-testHillHeight / 4);
+		addRoad(0,  30,  	0, 		-.6f * turnMod, 	testHillHeight);
+		
+		addRoad(0, 	30,  	0, 		0f * turnMod, 		0);
+		addRoad(0, 	30,  	0, 		0f * turnMod, 		testHillHeight / 2);
+		addRoad(0, 	40,  	0, 		0f * turnMod, 		0);
+		// @formatter:on
+
+		digOutSegments(20, 5, 3);
+		digOutSegments(25, 4, 0);
+		digOutSegments(45, 10, 0);
+		digOutSegments(70, 10, 1);
+		digOutSegments(80, 10, 2);
+		digOutSegments(94, 3, 3);
+
+		addProp(PropDefinition.WALL, 100, 0);
+		addProp(PropDefinition.WALL, 100, 1);
+
+		addProp(PropDefinition.COIN, 30, 2);
+		addProp(PropDefinition.COIN, 22, 1);
+		addProp(PropDefinition.COIN, 34, 2);
+		addProp(PropDefinition.COIN, 36, 1);
+		addProp(PropDefinition.COIN, 38, 2);
+		addProp(PropDefinition.COIN, 40, 1);
+
+		addProp(PropDefinition.COIN, 50, 2);
+		addProp(PropDefinition.COIN, 52, 1);
+		addProp(PropDefinition.COIN, 54, 2);
+		addProp(PropDefinition.COIN, 56, 1);
+		addProp(PropDefinition.COIN, 58, 2);
+		addProp(PropDefinition.COIN, 50, 1);
+
+		addProp(PropDefinition.COIN, 85, 3);
+		addProp(PropDefinition.COIN, 87, 3);
+		addProp(PropDefinition.COIN, 89, 3);
+		addProp(PropDefinition.COIN, 91, 3);
+
+		addEntity(EntityDefinition.NORMAL, 88, 0);
+		addEntity(EntityDefinition.NORMAL, 130, 3);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 145, 0);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 145, 1);
+
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 157, 2);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 157, 3);
+
+		digOutSegments(113, 4, 1);
+		digOutSegments(113, 4, 2);
+
+		addProp(PropDefinition.WALL, 118, 1);
+		addProp(PropDefinition.WALL, 118, 2);
+
+		digOutSegments(139, 4, 3);
+
+		digOutSegments(159, 10, 1);
+		digOutSegments(164, 3, 0);
+
+		addEntity(EntityDefinition.NORMAL, 185, 1);
+		addEntity(EntityDefinition.NORMAL, 185, 2);
+
+		addProp(PropDefinition.COIN, 200, 2);
+		addProp(PropDefinition.COIN, 198, 3);
+
+		addProp(PropDefinition.WALL, 195, 0);
+		addProp(PropDefinition.WALL, 195, 1);
+
+		digOutSegments(222, 3, 0);
+		digOutSegments(222, 3, 1);
+
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 222, 2);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 222, 3);
+
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 235, 2);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 235, 3);
+
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 282, 0);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 282, 3);
+
+		addEntity(EntityDefinition.NORMAL, 289, 1);
+		addEntity(EntityDefinition.NORMAL, 289, 2);
+
+		digOutSegments(232, 2, 0);
+		digOutSegments(232, 2, 1);
+		digOutSegments(232, 2, 2);
+		digOutSegments(232, 2, 3);
+
+		digOutSegments(238, 2, 0);
+		digOutSegments(238, 2, 1);
+		digOutSegments(238, 2, 2);
+		digOutSegments(238, 2, 3);
+
+		digOutSegments(244, 2, 0);
+		digOutSegments(244, 2, 1);
+		digOutSegments(244, 2, 2);
+		digOutSegments(244, 2, 3);
+
+		digOutSegments(252, 2, 0);
+		digOutSegments(250, 2, 1);
+		digOutSegments(250, 2, 2);
+		digOutSegments(252, 2, 3);
+
+		digOutSegments(260, 4, 0);
+		digOutSegments(260, 2, 1);
+		digOutSegments(260, 2, 2);
+		digOutSegments(260, 4, 3);
+
+//		digOutSegments(260, 4, 0);
+		digOutSegments(266, 2, 1);
+		digOutSegments(266, 2, 2);
+//		digOutSegments(260, 4, 3);
 
 		addProp(PropDefinition.COIN, 155, 0);
 		addProp(PropDefinition.COIN, 156, 0);

@@ -24,6 +24,7 @@ public class SelectScreen extends MenuScreen {
 	private static final int BUTTON_PLAY = 11;
 	private static final int BUTTON_BACK = 12;
 
+	private final MenuEnumEntry mStartingLevel;
 	private final MenuEnumEntry mDifficulty;
 
 	// ---------------------------------------------
@@ -43,12 +44,15 @@ public class SelectScreen extends MenuScreen {
 		lLayout.cropPaddingTop(10.f);
 		lLayout.cropPaddingBottom(10.f);
 
+		mStartingLevel = new MenuEnumEntry(pScreenManager, this, "Level");
+		mStartingLevel.addItems("Tutorial", "Medium", "Hard");
+		mStartingLevel.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		mStartingLevel.setButtonsEnabled(true);
+
 		mDifficulty = new MenuEnumEntry(pScreenManager, this, "Difficulty");
 		mDifficulty.addItems("Easy", "Normal", "Hard");
 		mDifficulty.horizontalFillType(FILLTYPE.FILL_CONTAINER);
 		mDifficulty.setButtonsEnabled(true);
-		mDifficulty.showInfoButton(true);
-		mDifficulty.setToolTip("Sets the game difficulty.");
 
 		final var lStartGameEntry = new MenuEntry(screenManager, this, "Play");
 		lStartGameEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
@@ -58,6 +62,7 @@ public class SelectScreen extends MenuScreen {
 		lBackEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
 		lBackEntry.registerClickListener(this, BUTTON_BACK);
 
+		lLayout.addMenuEntry(mStartingLevel);
 		lLayout.addMenuEntry(mDifficulty);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
 		lLayout.addMenuEntry(lStartGameEntry);
@@ -97,6 +102,8 @@ public class SelectScreen extends MenuScreen {
 		case BUTTON_PLAY:
 
 			final var gameOptions = new GameOptions();
+			final var levelIndex = mStartingLevel.selectedEntry();
+			gameOptions.levelNumber = levelIndex;
 
 			// Set the game options before instantiating the GameScreen.
 

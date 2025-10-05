@@ -32,6 +32,6 @@ public class GameOptions {
 
 	public GameOptions() {
 		// TODO: get this from the main menu (or incrmenet in win screen).
-		levelNumber = 1;
+		levelNumber = 2;
 	}
 }
