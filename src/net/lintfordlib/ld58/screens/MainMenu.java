@@ -71,6 +71,7 @@ public class MainMenu extends MenuScreen {
 		mSelectedEntryIndex = 0;
 
 		mScreenPaddingTop = 40.f;
+		mScreenPaddingLeft = 200;
 		mLayoutPaddingHorizontal = 50.f;
 
 		mIsPopup = false;

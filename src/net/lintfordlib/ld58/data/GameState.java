@@ -23,6 +23,7 @@ public class GameState {
 
 	private float mTrackLengthTotal;
 	private float mEndLevelDistance;
+	private int mEndLevelCoinAmt;
 	private float mPlayerDistance;
 
 	private float mSpeed;
@@ -70,9 +71,13 @@ public class GameState {
 	public float trackLength() {
 		return mTrackLengthTotal;
 	}
-	
+
 	public float endTrackDistance() {
 		return mEndLevelDistance;
+	}
+
+	public int endLevelCoinAmt() {
+		return mEndLevelCoinAmt;
 	}
 
 	// --------------------------------------
@@ -96,9 +101,11 @@ public class GameState {
 		mHasGameEnded = false;
 	}
 
-	public void readyGame(float trackLength, float endTrackLength) {
+	public void readyGame(float trackLength, float endTrackLength, int amtCoinsNeeded) {
 		mHealth = MAX_HEALTH;
+		
 		mTrackLengthTotal = trackLength;
+		mEndLevelCoinAmt = amtCoinsNeeded;
 		mEndLevelDistance = endTrackLength;
 	}
 

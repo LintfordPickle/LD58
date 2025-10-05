@@ -8,11 +8,11 @@ import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.fonts.BitmapFontManager;
 import net.lintfordlib.core.input.KeyEventActionManager;
 import net.lintfordlib.core.rendering.SharedResources;
+import net.lintfordlib.ld58.controllers.SoundFxController;
 import net.lintfordlib.ld58.data.GameOptions;
 import net.lintfordlib.ld58.data.SampleSceneHeader;
 import net.lintfordlib.ld58.screens.MainMenu;
 import net.lintfordlib.ld58.screens.game.GameScreen;
-import net.lintfordlib.ld58.screens.menu.CreditsScreen;
 import net.lintfordlib.ld58.screens.menu.MainMenuBackground;
 import net.lintfordlib.screenmanager.ScreenManager;
 import net.lintfordlib.screenmanager.toast.ToastManager;
@@ -130,13 +130,22 @@ public class GameWindow extends LintfordCore {
 	@Override
 	protected void finializeAppSetup() {
 		if (ConstantsGame.START_GAME_IMMEDIATELY) {
-			mScreenManager.addScreen(new GameScreen(mScreenManager, new SampleSceneHeader(), new GameOptions()));
+
+			var lSoundFxController = new SoundFxController(mControllerManager, mResourceManager.audioManager(), LintfordCore.CORE_ENTITY_GROUP_ID);
+			lSoundFxController.initialize(this);
+
+			final var options = new GameOptions();
+			options.levelNumber = 2;
+
+			mScreenManager.addScreen(new GameScreen(mScreenManager, new SampleSceneHeader(), options));
 			return;
 		}
 
 		mScreenManager.addScreen(new MainMenuBackground(mScreenManager));
-		mScreenManager.addScreen(new CreditsScreen(mScreenManager));
 		mScreenManager.addScreen(new MainMenu(mScreenManager));
+
+		var lSoundFxController = new SoundFxController(mControllerManager, mResourceManager.audioManager(), LintfordCore.CORE_ENTITY_GROUP_ID);
+		lSoundFxController.initialize(this);
 
 	}
 

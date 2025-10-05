@@ -10,6 +10,7 @@ import net.lintfordlib.controllers.ControllerManager;
 import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.debug.Debug;
 import net.lintfordlib.core.graphics.ColorHelper;
+import net.lintfordlib.core.graphics.fonts.CharAtlasRenderer;
 import net.lintfordlib.core.graphics.sprites.spritesheet.SpriteSheetDefinition;
 import net.lintfordlib.core.graphics.textures.FullScreenBuffer;
 import net.lintfordlib.core.graphics.textures.FullScreenBuffer.DepthMode;
@@ -24,6 +25,8 @@ import net.lintfordlib.data.scene.SceneHeader;
 import net.lintfordlib.ld58.ConstantsGame;
 import net.lintfordlib.ld58.LD58KeyActions;
 import net.lintfordlib.ld58.controllers.GameStateController;
+import net.lintfordlib.ld58.controllers.SoundFxController;
+import net.lintfordlib.ld58.data.GameEndState;
 import net.lintfordlib.ld58.data.GameOptions;
 import net.lintfordlib.ld58.data.GameState;
 import net.lintfordlib.ld58.data.GameTextureNames;
@@ -66,8 +69,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 	}
 
 	public static class EntityDefinition {
-		public static final EntityDefinition NORMAL = new EntityDefinition(GameTextureNames.ENEMY_MID, 1f, 2, false);
-		public static final EntityDefinition BLOCKER_SHOOTER = new EntityDefinition(GameTextureNames.ENEMY_MID, 0f, 3, true);
+		public static final EntityDefinition BLOCKER = new EntityDefinition(GameTextureNames.ENEMY_MID, 0f, 1, false);
+		public static final EntityDefinition NORMAL = new EntityDefinition(GameTextureNames.ENEMY_MID, 5f, 2, false);
+		public static final EntityDefinition BLOCKER_SHOOTER = new EntityDefinition(GameTextureNames.ENEMY_HARD, 0f, 3, true);
 		public static final EntityDefinition WALKER_SHOOTER = new EntityDefinition(GameTextureNames.ENEMY_MID, 1f, 1, true);
 
 		public final int spriteFrameUid;
@@ -324,10 +328,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 	private FullScreenBuffer mScreenBuffer;
 
+	private GameStateController mGameStateController;
+	private SoundFxController mSoundFxController;
+
+	private CharAtlasRenderer mCharAtlasRenderer;
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
 	private GameState mGameState;
-	private GameStateController mGameStateController;
 	private HudRenderer mHudRenderer;
 	private Texture mArrowTexture;
 	private Texture mBackgroundTexture;
@@ -382,8 +389,11 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 	private final float step = 1f / 60f;
 	private float mSpeed;
 
+	private int mLevelMinCoins;
 	private float mLevelEndDist;
+
 	private float mMinLevelSpeed;
+	private float mBaseLevelSpeed;
 	private float mMaxSpeed = mSegmentLength / step;
 
 	private float mSkyTime;
@@ -402,6 +412,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 		mShowBackgroundScreens = true;
 
+		mCharAtlasRenderer = new CharAtlasRenderer();
+		mCharAtlasRenderer.setCharacterSequence("0123456789:.,/");
 		mScreenBuffer = new FullScreenBuffer(ConstantsGame.GAME_CANVAS_WIDTH, ConstantsGame.GAME_CANVAS_HEIGHT);
 
 		for (int i = 0; i < PROJECTILE_POOL_SIZE; i++) {
@@ -417,6 +429,15 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 	// --------------------------------------
 
 	@Override
+	public void initialize() {
+		super.initialize();
+
+		final var controllerManager = screenManager.core().controllerManager();
+		mSoundFxController = (SoundFxController) controllerManager.getControllerByNameRequired(SoundFxController.CONTROLLER_NAME, LintfordCore.CORE_ENTITY_GROUP_ID);
+
+	}
+
+	@Override
 	public void loadResources(ResourceManager resourceManager) {
 		super.loadResources(resourceManager);
 
@@ -426,12 +447,17 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		mGameSpriteSheet = resourceManager.spriteSheetManager().getSpriteSheet("SPRITESHEET_GAME", ConstantsGame.GAME_RESOURCE_GROUP_ID);
 		mArrowTexture = resourceManager.textureManager().loadTexture("TEXTURE_ARROW", "res/textures/textureArrow.png", ConstantsGame.GAME_RESOURCE_GROUP_ID);
 
+		final var digitsTexture = resourceManager.textureManager().getTexture("TEXTURE_DIGITS", ConstantsGame.GAME_RESOURCE_GROUP_ID);
+		mCharAtlasRenderer.textureAtlas(digitsTexture);
+
 		mScreenBuffer.loadResources(resourceManager);
 	}
 
 	@Override
 	public void unloadResources() {
 		super.unloadResources();
+
+		mCharAtlasRenderer.unloadResources();
 
 		mGameSpriteSheet = null;
 		mBackgroundTexture = null;
@@ -451,7 +477,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 				reset();
 				buildLevel(mGameOptions.levelNumber);
 			} else {
-				screenManager.addScreen(new PauseScreen(screenManager, mSceneHeader, mGameOptions));
+				screenManager.addScreen(new PauseScreen(screenManager, mSceneHeader, mGameOptions, this));
 			}
 
 			return;
@@ -495,29 +521,40 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 			updatePlayerJump(core);
 		}
 
-		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_FORWARD)) {
+		final var forwardPressed = core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_FORWARD);
+		final var backwardPressed = core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_BACKWARD);
+
+		if (forwardPressed) {
 			if (mSpeed < mMinLevelSpeed) {
 				mSpeed = mMinLevelSpeed;
 			}
 
-			{
-				mSpeed += 10.f;
+			mSpeed += 10.f;
 
-				if (mSpeed > mMaxSpeed) {
-					mSpeed = mMaxSpeed;
-				}
+			if (mSpeed > mMaxSpeed)
+				mSpeed = mMaxSpeed;
+
+		}
+
+		if (backwardPressed) {
+
+			if (ConstantsGame.STOP_ON_BACKWARDS)
+				mSpeed = 0;
+			else
+
+			if (mSpeed > mMinLevelSpeed) {
+				mSpeed -= 2.f;
+
+				if (mSpeed < mMinLevelSpeed)
+					mSpeed = mMinLevelSpeed;
 			}
 		}
 
-		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_BACKWARD)) {
-
-//			if (ConstantsGame.IS_DEBUG_MODE)
-//				mSpeed = 0;
-//			else 
-			if (mSpeed > mMinLevelSpeed) {
-				mSpeed -= 2.f;
-				if (mSpeed < mMinLevelSpeed)
-					mSpeed = mMinLevelSpeed;
+		if (ConstantsGame.ENABLED_AUTOWALK && !backwardPressed && !forwardPressed) {
+			if (mSpeed < mBaseLevelSpeed) {
+				mSpeed += 2.f;
+			} else if (mSpeed > mBaseLevelSpeed) {
+				mSpeed -= 1.f;
 			}
 		}
 	}
@@ -527,6 +564,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 	@Override
 	public void update(LintfordCore core, boolean otherScreenHasFocus, boolean coveredByOtherScreen) {
 		super.update(core, otherScreenHasFocus, coveredByOtherScreen);
+
+		if (otherScreenHasFocus)
+			return; // pause/lost/won screens
 
 		mPlayerX = getLaneOffsetX(mPlayerLane);
 
@@ -581,6 +621,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 		if (mSpeed > mMinLevelSpeed)
 			mSpeed *= 0.99f;
+
 		if (!ConstantsGame.IS_DEBUG_MODE && mGameState.hasGameStarted() && mSpeed < mMinLevelSpeed)
 			mSpeed = mMinLevelSpeed;
 
@@ -717,8 +758,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 		if (!isFloored && mPlayerAltitude < segmentHeight - 5.f) {
 			mGameState.removeHealth();
+			mSoundFxController.playSound(SoundFxController.SOUND_FALL);
 		}
-
 	}
 
 	private void updatePlayerJump(LintfordCore core) {
@@ -737,6 +778,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 		if (isFloored && isOnFloor) {
 			mPlayerYVel = JUMP_ALT_POWER; // Apply directly to velocity, not acceleration
+
+			mSoundFxController.playSound(SoundFxController.SOUND_JUMP);
 		}
 
 	}
@@ -767,6 +810,12 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 				if (propDef.pickup) {
 					mGameState.addCoins(propDef.value);
 
+					coinSoundCounter++;
+					if (coinSoundCounter % 2 == 0)
+						mSoundFxController.playSound(SoundFxController.SOUND_COIN_0);
+					else
+						mSoundFxController.playSound(SoundFxController.SOUND_COIN_1);
+
 					prop.kill();
 					continue;
 				}
@@ -795,6 +844,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		}
 	}
 
+	private int coinSoundCounter;
+
 	// only updates entities we can see
 	private void updateEntities(LintfordCore core) {
 
@@ -810,6 +861,10 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 			for (int j = numEntities - 1; j >= 0; j--) {
 				final var entity = segment.entities.get(j);
 				final var def = entity.def;
+
+				final var distFromPlayer = entity.zOffset - mPosition + mPlayerZ;
+				if (distFromPlayer > 1000)
+					continue;
 
 				if (!entity.isAlive) {
 					if (entity.dyingTimer > 0) {
@@ -933,8 +988,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 							projectile.kill();
 							origSegment.projectiles.remove(projectile);
 
-							mGameState.addKill();
-							entity.hit();
+							if (entity.hit()) {
+								mGameState.addKill();
+								mSoundFxController.playSound(SoundFxController.SOUND_EXPLOSION);
+							} else {
+								mSoundFxController.playSound(SoundFxController.SOUND_HURT);
+							}
+
 						}
 					}
 				}
@@ -951,6 +1011,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 						mPlayerHitCooldown = 400;
 						mPlayerHitFlashTimer = 50;
 						mPlayerHitFlash = true;
+
+						mSoundFxController.playSound(SoundFxController.SOUND_HURT);
 
 						mGameState.removeHealth();
 
@@ -1002,17 +1064,20 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 			final var spriteBatch = mRendererManager.sharedResources().uiSpriteBatch();
 			spriteBatch.begin(core.gameCamera());
 			final var frame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.PRESS_SPACE);
+			final var frameCoinsNeeded = mGameSpriteSheet.getSpriteFrame(GameTextureNames.COINS_NEEDED);
 
-			spriteBatch.draw(mGameSpriteSheet, frame, -frame.width() / 2, -frame.height() / 2, frame.width(), frame.height(), 1.f);
+			spriteBatch.draw(mGameSpriteSheet, frame, -frame.width() / 2, -frame.height() / 2 - 20, frame.width(), frame.height(), 1.f);
+			spriteBatch.draw(mGameSpriteSheet, frameCoinsNeeded, -frameCoinsNeeded.width() / 2 - 30, -frameCoinsNeeded.height() / 2 + 40, frameCoinsNeeded.width(), frameCoinsNeeded.height(), 1.f);
+
+			mCharAtlasRenderer.drawNumberAN(spriteBatch, String.valueOf(mLevelMinCoins), frameCoinsNeeded.width() / 2 - 30, -frameCoinsNeeded.height() / 2 + 40 + 8, 0.3f, 1f);
 			spriteBatch.end();
+
 		}
 
-		if (ConstantsGame.CAMERA_DEBUG_MODE) {
-
+		if (ConstantsGame.IS_DEBUG_MODE) {
 			final var debugSegment = findSegment(mPosition + mPlayerZ);
 			Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "pos: " + mPosition, -150, -10, .5f);
 			Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "id: " + debugSegment.index, -150, 0, .5f);
-
 		}
 
 	}
@@ -1596,6 +1661,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		projectile.init(def, offsetX, yOffset, zOffset, direction);
 		segment.projectiles.add(projectile);
 
+		mSoundFxController.playSound(SoundFxController.SOUND_SHOOT);
+
 		// global add for update
 		mProjectiles.add(projectile);
 
@@ -1684,12 +1751,20 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 	@Override
 	public void onGameWon() {
-		screenManager.addScreen(new WonScreen(screenManager, mSceneHeader, mGameOptions));
+		screenManager.addScreen(new WonScreen(screenManager, mSceneHeader, mGameOptions, this));
 	}
 
 	@Override
 	public void onGameLost() {
-		screenManager.addScreen(new LostScreen(screenManager, mSceneHeader, mGameOptions, this));
+
+		var finishedDistance = mGameState.playerDistance() >= mGameState.endTrackDistance();
+		var loosByNotEnoughCoinage = mGameState.coins() < mGameState.endLevelCoinAmt();
+
+		var endState = GameEndState.LOST_DEATH;
+		if (finishedDistance && loosByNotEnoughCoinage)
+			endState = GameEndState.LOST_NOT_ENOUGH_COINS;
+
+		screenManager.addScreen(new LostScreen(screenManager, mSceneHeader, mGameOptions, this, endState));
 	}
 
 	// LEVELS --------------------------------------
@@ -1729,13 +1804,18 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 			mTrackSegments.get(i).variation = (i % 2);
 		}
 
+		if (mGameOptions.allowStopping) {
+			mMinLevelSpeed = 0;
+		}
+
 		mTrackLength = mTrackSegments.size() * mSegmentLength;
 		mLevelEndDist = mTrackLength - 10 * mSegmentLength;
-		mGameState.readyGame(mTrackLength, mLevelEndDist);
+		mGameState.readyGame(mTrackLength, mLevelEndDist, mLevelMinCoins);
 	}
 
 	private void setupWorld_Tutorial() { // tutorial
 		mMinLevelSpeed = 50;
+		mBaseLevelSpeed = 100;
 		mMaxSpeed = 200;
 
 		// @formatter:off
@@ -1782,10 +1862,11 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		addProp(PropDefinition.COIN, 96, 3);
 
 		addProp(PropDefinition.WALL, 98, 2);
-		addProp(PropDefinition.WALL, 98, 3);
 
 		addProp(PropDefinition.WALL, 104, 0);
 		addProp(PropDefinition.WALL, 104, 2);
+
+		addProp(PropDefinition.WALL, 179, 0);
 
 		for (int i = 145; i < 150; i++) {
 			addProp(PropDefinition.COIN, i, 0);
@@ -1802,19 +1883,26 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		digOutSegments(255, 3, 3);
 		addProp(PropDefinition.WALL, 261, 1);
 		addProp(PropDefinition.WALL, 260, 0);
+
 		digOutSegments(257, 3, 0);
 
 		addProp(PropDefinition.COIN, 240, 3);
 		addProp(PropDefinition.COIN, 242, 3);
 
-		// TODO: Set to collect amount
-		// to collect 500
+		addProp(PropDefinition.COIN, 260, 2);
+		addProp(PropDefinition.COIN, 261, 2);
+
+		addEntity(EntityDefinition.BLOCKER, 146, 2);
+		addEntity(EntityDefinition.BLOCKER, 146, 3);
+
+		mLevelMinCoins = 22;
 
 	}
 
 	private void setupWorld_0() { // medium
-		mMinLevelSpeed = 100;
-		mMaxSpeed = 150;
+		mMinLevelSpeed = 40;
+		mBaseLevelSpeed = 50;
+		mMaxSpeed = 200;
 
 		// @formatter:off
 		final var testHillHeight = 60;
@@ -1929,10 +2017,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		digOutSegments(260, 2, 2);
 		digOutSegments(260, 4, 3);
 
-//		digOutSegments(260, 4, 0);
 		digOutSegments(266, 2, 1);
 		digOutSegments(266, 2, 2);
-//		digOutSegments(260, 4, 3);
 
 		addProp(PropDefinition.COIN, 155, 0);
 		addProp(PropDefinition.COIN, 156, 0);
@@ -1941,19 +2027,21 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		addProp(PropDefinition.COIN, 159, 0);
 		addProp(PropDefinition.COIN, 160, 0);
 
-//		addEntity(EntityDefinition.SHOOTER, 110, 3);
 		addEntity(EntityDefinition.NORMAL, 150, 3);
+
+		mLevelMinCoins = 15;
 
 	}
 
 	private static final int mDebugStartOnSegmentId = 0;
 
 	private void setupWorld_1() { // hard
-		mMinLevelSpeed = 0;
-		mMaxSpeed = 150;
+		mMinLevelSpeed = 50;
+		mBaseLevelSpeed = 75;
+		mMaxSpeed = 200;
 
 		// @formatter:off
-		final var testHillHeight = 60;
+		final var testHillHeight = 50;
 		final var turnMod = 6.f;
 		
 		addRoad(0, 	25, 	0, 		0 * turnMod, 		0);
@@ -1970,7 +2058,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		
 		addRoad(0, 	30,  	0, 		0f * turnMod, 		0);
 		addRoad(0, 	30,  	0, 		0f * turnMod, 		testHillHeight / 2);
-		addRoad(0, 	40,  	0, 		0f * turnMod, 		0);
+		addRoad(0, 	40,  	0, 		-.40f * turnMod, 	testHillHeight / 2);
+		addRoad(0, 	40,  	0, 		.10f * turnMod, 	-testHillHeight / 2);
 		// @formatter:on
 
 		digOutSegments(20, 5, 3);
@@ -1979,6 +2068,10 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		digOutSegments(70, 10, 1);
 		digOutSegments(80, 10, 2);
 		digOutSegments(94, 3, 3);
+
+		// TEST
+		addEntity(EntityDefinition.NORMAL, 30, 2);
+		addEntity(EntityDefinition.NORMAL, 10, 3);
 
 		addProp(PropDefinition.WALL, 100, 0);
 		addProp(PropDefinition.WALL, 100, 1);
@@ -2021,6 +2114,9 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		digOutSegments(159, 10, 1);
 		digOutSegments(164, 3, 0);
 
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 145, 0);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 145, 1);
+
 		addEntity(EntityDefinition.NORMAL, 185, 1);
 		addEntity(EntityDefinition.NORMAL, 185, 2);
 
@@ -2055,6 +2151,12 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		digOutSegments(238, 2, 2);
 		digOutSegments(238, 2, 3);
 
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 282, 0);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 282, 3);
+
+		addEntity(EntityDefinition.NORMAL, 200, 0);
+		addEntity(EntityDefinition.NORMAL, 208, 0);
+
 		digOutSegments(244, 2, 0);
 		digOutSegments(244, 2, 1);
 		digOutSegments(244, 2, 2);
@@ -2082,9 +2184,37 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		addProp(PropDefinition.COIN, 159, 0);
 		addProp(PropDefinition.COIN, 160, 0);
 
-//		addEntity(EntityDefinition.SHOOTER, 110, 3);
+		addProp(PropDefinition.COIN, 305, 1);
+		addProp(PropDefinition.COIN, 306, 1);
+		addProp(PropDefinition.COIN, 307, 3);
+		addProp(PropDefinition.COIN, 308, 2);
+		addProp(PropDefinition.COIN, 309, 2);
+
+		digOutSegments(318, 3, 1);
+		digOutSegments(318, 3, 2);
+
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 330, 2);
+
+		digOutSegments(335, 3, 0);
+		digOutSegments(337, 3, 1);
+		addProp(PropDefinition.WALL, 340, 1);
+
+		addEntity(EntityDefinition.NORMAL, 345, 2);
+		addEntity(EntityDefinition.NORMAL, 345, 3);
+
+		digOutSegments(346, 3, 2);
+		digOutSegments(346, 3, 3);
+
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 356, 0);
+		addEntity(EntityDefinition.BLOCKER_SHOOTER, 356, 1);
+
 		addEntity(EntityDefinition.NORMAL, 150, 3);
 
+		addProp(PropDefinition.COIN, 317, 3);
+		addProp(PropDefinition.COIN, 319, 3);
+		addProp(PropDefinition.COIN, 321, 3);
+
+		mLevelMinCoins = 30;
 	}
 
 	@Override

@@ -5,7 +5,7 @@
     {
       "name": "PRESS_SPACE",
       "x": 0,
-      "y": 68,
+      "y": 144,
       "w": 176,
       "h": 86,
       "pivotX": 0,
@@ -16,9 +16,35 @@
       "anchorPoints": []
     },
     {
+      "name": "COINS_NEEDED",
+      "x": 50,
+      "y": 44,
+      "w": 200,
+      "h": 32,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    },
+    {
       "name": "COIN_00",
       "x": 0,
-      "y": 18,
+      "y": 44,
+      "w": 48,
+      "h": 48,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    },
+    {
+      "name": "ENEMY_HARD",
+      "x": 0,
+      "y": 94,
       "w": 48,
       "h": 48,
       "pivotX": 0,
@@ -31,7 +57,7 @@
     {
       "name": "ENEMY_MID",
       "x": 50,
-      "y": 18,
+      "y": 94,
       "w": 48,
       "h": 48,
       "pivotX": 0,
@@ -44,7 +70,7 @@
     {
       "name": "PLAYER_MID",
       "x": 100,
-      "y": 18,
+      "y": 94,
       "w": 48,
       "h": 48,
       "pivotX": 0,
@@ -57,7 +83,7 @@
     {
       "name": "WALL_00",
       "x": 150,
-      "y": 18,
+      "y": 94,
       "w": 48,
       "h": 48,
       "pivotX": 0,
@@ -69,7 +95,7 @@
     },
     {
       "name": "OBJECT_SHADOW",
-      "x": 18,
+      "x": 36,
       "y": 0,
       "w": 48,
       "h": 16,
@@ -83,6 +109,32 @@
     {
       "name": "BULLET",
       "x": 0,
+      "y": 18,
+      "w": 24,
+      "h": 24,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    },
+    {
+      "name": "BULLET__BAK",
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16,
+      "pivotX": 0,
+      "pivotY": 0,
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "anchorToPointName": null,
+      "anchorPoints": []
+    },
+    {
+      "name": "HEALTH",
+      "x": 18,
       "y": 0,
       "w": 16,
       "h": 16,

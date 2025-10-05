@@ -5,8 +5,8 @@ import net.lintfordlib.core.graphics.ColorConstants;
 import net.lintfordlib.data.scene.SceneHeader;
 import net.lintfordlib.ld58.ConstantsGame;
 import net.lintfordlib.ld58.data.GameOptions;
+import net.lintfordlib.ld58.data.IResetLevel;
 import net.lintfordlib.ld58.screens.MainMenu;
-import net.lintfordlib.ld58.screens.menu.CreditsScreen;
 import net.lintfordlib.screenmanager.MenuEntry;
 import net.lintfordlib.screenmanager.MenuScreen;
 import net.lintfordlib.screenmanager.ScreenManager;
@@ -32,16 +32,18 @@ public class WonScreen extends MenuScreen {
 
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
+	private IResetLevel mLevelResetter;
 
 	// --------------------------------------
 	// Constructor
 	// --------------------------------------
 
-	public WonScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions) {
+	public WonScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions, IResetLevel resetter) {
 		super(screenManager, null);
 
 		mSceneHeader = sceneHeader;
 		mGameOptions = gameOptions;
+		mLevelResetter = resetter;
 
 		final var layout = new ListLayout(this);
 		layout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
@@ -112,13 +114,18 @@ public class WonScreen extends MenuScreen {
 			return;
 
 		case SCREEN_BUTTON_RESTART: {
-			final var lLoadingScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
-			screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lLoadingScreen));
+			if (mLevelResetter != null) {
+				mLevelResetter.resetLevel();
+				exitScreen();
+			} else {
+				final var lNewGameScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
+				screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lNewGameScreen));
+			}
 		}
 			break;
 
 		case SCREEN_BUTTON_EXIT: {
-			screenManager.createLoadingScreen(new LoadingScreen(screenManager, false, false, new CreditsScreen(screenManager), new MainMenu(screenManager)));
+			screenManager.createLoadingScreen(new LoadingScreen(screenManager, false, false, new MainMenu(screenManager)));
 		}
 			break;
 

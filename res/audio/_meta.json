@@ -1,0 +1,44 @@
+{
+	"AudioMetaDefinitions" : [
+		{
+			"soundname":"SOUND_SHOOT",
+			"filepath":"res//audio//audioShoot.wav"
+		},
+		{
+			"soundname":"SOUND_COIN_0",
+			"filepath":"res//audio//audioCoin0.wav"
+		},
+		{
+			"soundname":"SOUND_COIN_1",
+			"filepath":"res//audio//audioCoin1.wav"
+		},
+		{
+			"soundname":"SOUND_COLLIDE",
+			"filepath":"res//audio//audioCollide.wav"
+		},
+		{
+			"soundname":"SOUND_EXPLOSION",
+			"filepath":"res//audio//audioExplosion.wav"
+		},
+		{
+			"soundname":"SOUND_HURT",
+			"filepath":"res//audio//audioHurt.wav"
+		},
+		{
+			"soundname":"SOUND_JUMP",
+			"filepath":"res//audio//audioJump.wav"
+		},
+		{
+			"soundname":"SOUND_LAND",
+			"filepath":"res//audio//audioLand.wav"
+		},
+		{
+			"soundname":"SOUND_POWERUP",
+			"filepath":"res//audio//audioPowerup.wav"
+		},
+		{
+			"soundname":"SOUND_FALL",
+			"filepath":"res//audio//audioFall.wav"
+		}
+	]
+}

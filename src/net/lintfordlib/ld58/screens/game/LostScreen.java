@@ -3,10 +3,10 @@ package net.lintfordlib.ld58.screens.game;
 import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.ColorConstants;
 import net.lintfordlib.data.scene.SceneHeader;
+import net.lintfordlib.ld58.data.GameEndState;
 import net.lintfordlib.ld58.data.GameOptions;
 import net.lintfordlib.ld58.data.IResetLevel;
 import net.lintfordlib.ld58.screens.MainMenu;
-import net.lintfordlib.ld58.screens.menu.CreditsScreen;
 import net.lintfordlib.screenmanager.MenuEntry;
 import net.lintfordlib.screenmanager.MenuScreen;
 import net.lintfordlib.screenmanager.ScreenManager;
@@ -21,7 +21,8 @@ public class LostScreen extends MenuScreen {
 	// Constants
 	// --------------------------------------
 
-	private static final String[] LOST_QUOTES = new String[] { "NEVER MIND!" };
+	private static final String[] DEATH_QUOTES = new String[] { "YOU DIED" };
+	private static final String[] COIN_QUOTES = new String[] { "NEED TO COLLECT" };
 
 	private static final int SCREEN_BUTTON_RESTART = 12;
 	private static final int SCREEN_BUTTON_EXIT = 13;
@@ -33,17 +34,24 @@ public class LostScreen extends MenuScreen {
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
 	private IResetLevel mLevelResetter;
+	private String mQuote;
 
 	// --------------------------------------
 	// Constructor
 	// --------------------------------------
 
-	public LostScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions, IResetLevel levelResetter) {
+	public LostScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions, IResetLevel levelResetter, GameEndState endState) {
 		super(screenManager, null);
 
 		mSceneHeader = sceneHeader;
 		mGameOptions = gameOptions;
 		mLevelResetter = levelResetter;
+
+		if (endState == GameEndState.LOST_DEATH) {
+			mQuote = DEATH_QUOTES[0];
+		} else {
+			mQuote = COIN_QUOTES[0];
+		}
 
 		final var lLayout = new ListLayout(this);
 		lLayout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
@@ -90,9 +98,8 @@ public class LostScreen extends MenuScreen {
 		final var fontUnit = mRendererManager.sharedResources().uiHeaderFont();
 		fontUnit.begin(core.gameCamera());
 		fontUnit.setTextColorWhite();
-		final var quote = LOST_QUOTES[0];
-		final var quoteWidth = fontUnit.getStringWidth(quote);
-		fontUnit.drawText(quote, 0 - quoteWidth / 2, -70, 1.f, 1.f);
+		final var quoteWidth = fontUnit.getStringWidth(mQuote);
+		fontUnit.drawText(mQuote, 0 - quoteWidth / 2, -70, 1.f, 1.f);
 		fontUnit.end();
 
 	}
@@ -127,7 +134,7 @@ public class LostScreen extends MenuScreen {
 			break;
 
 		case SCREEN_BUTTON_EXIT:
-			screenManager.createLoadingScreen(new LoadingScreen(screenManager, false, false, new CreditsScreen(screenManager), new MainMenu(screenManager)));
+			screenManager.createLoadingScreen(new LoadingScreen(screenManager, false, false, new MainMenu(screenManager)));
 			break;
 
 		}

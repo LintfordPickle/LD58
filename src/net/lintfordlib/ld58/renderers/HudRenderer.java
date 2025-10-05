@@ -9,7 +9,7 @@ import net.lintfordlib.core.rendering.RenderPass;
 import net.lintfordlib.ld58.ConstantsGame;
 import net.lintfordlib.ld58.controllers.GameStateController;
 import net.lintfordlib.ld58.data.GameState;
-import net.lintfordlib.ld58.data.HudTextureNames;
+import net.lintfordlib.ld58.data.GameTextureNames;
 import net.lintfordlib.renderers.BaseRenderer;
 import net.lintfordlib.renderers.RendererManagerBase;
 
@@ -22,7 +22,7 @@ public class HudRenderer extends BaseRenderer {
 	public static final String RENDERER_NAME = "Hud Renderer";
 
 	private GameStateController mGameStateController;
-	private SpriteSheetDefinition mHudSpriteSheet;
+	private SpriteSheetDefinition mGameSpriteSheet;
 	private CharAtlasRenderer mCharAtlasRenderer;
 	private Texture mDigitsTexture;
 
@@ -62,7 +62,7 @@ public class HudRenderer extends BaseRenderer {
 	public void loadResources(ResourceManager resourceManager) {
 		super.loadResources(resourceManager);
 
-		mHudSpriteSheet = resourceManager.spriteSheetManager().getSpriteSheet("SPRITESHEET_HUD", ConstantsGame.GAME_RESOURCE_GROUP_ID);
+		mGameSpriteSheet = resourceManager.spriteSheetManager().getSpriteSheet("SPRITESHEET_GAME", ConstantsGame.GAME_RESOURCE_GROUP_ID);
 
 		mDigitsTexture = resourceManager.textureManager().getTexture("TEXTURE_DIGITS", ConstantsGame.GAME_RESOURCE_GROUP_ID);
 		mCharAtlasRenderer.textureAtlas(mDigitsTexture);
@@ -73,7 +73,7 @@ public class HudRenderer extends BaseRenderer {
 	public void unloadResources() {
 		super.unloadResources();
 
-		mHudSpriteSheet = null;
+		mGameSpriteSheet = null;
 		mDigitsTexture = null;
 	}
 
@@ -95,7 +95,7 @@ public class HudRenderer extends BaseRenderer {
 	public void draw(LintfordCore core, RenderPass renderPass) {
 		final var hudBounds = core.gameCamera().boundingRectangle();
 		final var textureBatch = mRendererManager.sharedResources().uiSpriteBatch();
-		final var healthFrame = mHudSpriteSheet.getSpriteFrame(HudTextureNames.HEALTH);
+		final var healthFrame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.HEALTH);
 
 		final var gameState = mGameStateController.gameState();
 
@@ -113,7 +113,7 @@ public class HudRenderer extends BaseRenderer {
 				textureBatch.setColorBlack();
 			}
 
-			textureBatch.draw(mHudSpriteSheet, healthFrame, xx, yy, 16, 16, 5.f);
+			textureBatch.draw(mGameSpriteSheet, healthFrame, xx, yy, 16, 16, 5.f);
 		}
 
 		textureBatch.setColorWhite();
@@ -129,10 +129,10 @@ public class HudRenderer extends BaseRenderer {
 		mCharAtlasRenderer.drawNumber(textureBatch, (int) distTravelled, hudBounds.centerX() + 160 - 10 - distTravelledWidth - distTotalWidth, hudBounds.top() + 12, 0.3f, .8f);
 
 		// Score
-		final var score = gameState.getScore();
-		final var scoreWidth = String.valueOf(score).length() * 16;
+		final var numCoins = gameState.coins();
+		final var coinsWidth = String.valueOf(numCoins).length() * 16;
 
-		mCharAtlasRenderer.drawNumber(textureBatch, score, hudBounds.centerX() - scoreWidth / 2, hudBounds.top() + 11, 0.3f, .9f);
+		mCharAtlasRenderer.drawNumber(textureBatch, numCoins, hudBounds.centerX() - coinsWidth / 2, hudBounds.top() + 11, 0.3f, .9f);
 
 		// Speed
 		final var speed = gameState.speed();

@@ -49,26 +49,14 @@ public class GameStateController extends BaseController {
 	// --------------------------------------
 
 	@Override
-	public void initialize(LintfordCore core) {
-		super.initialize(core);
-
-		// Here you can get references to other controllers created within the screen.
-
-		// final var lControllerManager = core.controllerManager();
-		// mGameComponentController = (GameComponentController) lControllerManager.getControllerByNameRequired(GameComponentController.CONTROLLER_NAME, entityGroupUid());
-	}
-
-	@Override
 	public void update(LintfordCore core) {
 		super.update(core);
 
 		if (!mGameState.hasGameStarted() || mGameState.hasGameEnded())
 			return;
 
-		// Check for lose conditions
 		if (mGameState.health() <= 0) {
-
-			Debug.debugManager().logger().w(GameStateController.class.getSimpleName(), "Game lost state initiated");
+			Debug.debugManager().logger().w(GameStateController.class.getSimpleName(), "Game lost state initiated (died)");
 
 			mGameState.endGame();
 			mGameStateListener.onGameLost();
@@ -76,10 +64,19 @@ public class GameStateController extends BaseController {
 		}
 
 		if (mGameState.playerDistance() >= mGameState.endTrackDistance()) {
-			Debug.debugManager().logger().w(GameStateController.class.getSimpleName(), "Game wonstate initiated");
 
-			mGameState.endGame();
-			mGameStateListener.onGameWon();
+			if (mGameState.coins() >= mGameState.endLevelCoinAmt() || mGameState.endLevelCoinAmt() == 0) {
+				Debug.debugManager().logger().w(GameStateController.class.getSimpleName(), "Game wonstate initiated");
+
+				mGameState.endGame();
+				mGameStateListener.onGameWon();
+			} else {
+				Debug.debugManager().logger().w(GameStateController.class.getSimpleName(), "Game lost state initiated (not enough coins)");
+
+				mGameState.endGame();
+				mGameStateListener.onGameLost();
+			}
+
 			return;
 		}
 	}

@@ -12,6 +12,7 @@ import net.lintfordlib.screenmanager.ScreenManagerConstants.FILLTYPE;
 import net.lintfordlib.screenmanager.ScreenManagerConstants.LAYOUT_ALIGNMENT;
 import net.lintfordlib.screenmanager.ScreenManagerConstants.LAYOUT_WIDTH;
 import net.lintfordlib.screenmanager.entries.MenuEnumEntry;
+import net.lintfordlib.screenmanager.entries.MenuToggleEntry;
 import net.lintfordlib.screenmanager.layouts.ListLayout;
 import net.lintfordlib.screenmanager.screens.LoadingScreen;
 
@@ -25,7 +26,7 @@ public class SelectScreen extends MenuScreen {
 	private static final int BUTTON_BACK = 12;
 
 	private final MenuEnumEntry mStartingLevel;
-	private final MenuEnumEntry mDifficulty;
+	private final MenuToggleEntry mAllowStopping;
 
 	// ---------------------------------------------
 	// Constructors
@@ -49,10 +50,9 @@ public class SelectScreen extends MenuScreen {
 		mStartingLevel.horizontalFillType(FILLTYPE.FILL_CONTAINER);
 		mStartingLevel.setButtonsEnabled(true);
 
-		mDifficulty = new MenuEnumEntry(pScreenManager, this, "Difficulty");
-		mDifficulty.addItems("Easy", "Normal", "Hard");
-		mDifficulty.horizontalFillType(FILLTYPE.FILL_CONTAINER);
-		mDifficulty.setButtonsEnabled(true);
+		mAllowStopping = new MenuToggleEntry(pScreenManager, this, "Allow Stopping");
+		mAllowStopping.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		mAllowStopping.isChecked(false);
 
 		final var lStartGameEntry = new MenuEntry(screenManager, this, "Play");
 		lStartGameEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
@@ -63,7 +63,7 @@ public class SelectScreen extends MenuScreen {
 		lBackEntry.registerClickListener(this, BUTTON_BACK);
 
 		lLayout.addMenuEntry(mStartingLevel);
-		lLayout.addMenuEntry(mDifficulty);
+		lLayout.addMenuEntry(mAllowStopping);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
 		lLayout.addMenuEntry(lStartGameEntry);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
@@ -104,6 +104,7 @@ public class SelectScreen extends MenuScreen {
 			final var gameOptions = new GameOptions();
 			final var levelIndex = mStartingLevel.selectedEntry();
 			gameOptions.levelNumber = levelIndex;
+			gameOptions.allowStopping = mAllowStopping.isChecked();
 
 			// Set the game options before instantiating the GameScreen.
 

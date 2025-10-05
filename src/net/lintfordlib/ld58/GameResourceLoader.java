@@ -96,6 +96,9 @@ public class GameResourceLoader extends ResourceMapLoader {
 		mResourceManager.textureManager().loadTexturesFromMetafile("res/textures/_meta.json", ConstantsGame.GAME_RESOURCE_GROUP_ID);
 		mResourceManager.spriteSheetManager().loadSpriteSheetFromMeta("res/spritesheets/_meta.json", ConstantsGame.GAME_RESOURCE_GROUP_ID);
 
+//		final var lAudioManager = mResourceManager.audioManager();
+//		lAudioManager.loadAudioFilesFromMetafile("res//sfx//_meta.json");
+		
 		// If you need to override some of the default textures loaded in the LintfordLib.CoreSpritesheetDefinition, it can be done here with the following lines:
 		// mResourceManager.textureManager().loadTexture("TEXTURE_CORE", "res/textures/textureCore.png", GL11.GL_NEAREST, true, LintfordCore.CORE_ENTITY_GROUP_ID);
 		// mResourceManager.spriteSheetManager().loadSpriteSheet("res/spritesheets/spritesheetCore.json", LintfordCore.CORE_ENTITY_GROUP_ID);

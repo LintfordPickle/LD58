@@ -15,13 +15,6 @@
 			"wrapTIndex":1
 		},
 		{
-			"textureName":"TEXTURE_HUD",
-			"filepath":"res/textures/textureHud.png",
-			"filterIndex":1,
-			"wrapSIndex":1,
-			"wrapTIndex":1
-		},
-		{
 			"textureName":"TEXTURE_DIGITS",
 			"filepath":"res/textures/textureDigits.png",
 			"filterIndex":1,

@@ -3,8 +3,8 @@ package net.lintfordlib.ld58.screens.game;
 import net.lintfordlib.core.graphics.ColorConstants;
 import net.lintfordlib.data.scene.SceneHeader;
 import net.lintfordlib.ld58.data.GameOptions;
+import net.lintfordlib.ld58.data.IResetLevel;
 import net.lintfordlib.ld58.screens.MainMenu;
-import net.lintfordlib.ld58.screens.menu.CreditsScreen;
 import net.lintfordlib.ld58.screens.menu.MainMenuBackground;
 import net.lintfordlib.ld58.screens.menu.OptionsScreen;
 import net.lintfordlib.screenmanager.MenuEntry;
@@ -31,16 +31,18 @@ public class PauseScreen extends MenuScreen {
 
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
+	private IResetLevel mLevelResetter;
 
 	// --------------------------------------
 	// Constructor
 	// --------------------------------------
 
-	public PauseScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions) {
+	public PauseScreen(ScreenManager screenManager, SceneHeader sceneHeader, GameOptions gameOptions, IResetLevel resetter) {
 		super(screenManager, null);
 
 		mSceneHeader = sceneHeader;
 		mGameOptions = gameOptions;
+		mLevelResetter = resetter;
 
 		final var lLayout = new ListLayout(this);
 		lLayout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
@@ -63,8 +65,8 @@ public class PauseScreen extends MenuScreen {
 		lLayout.addMenuEntry(lContinueEntry);
 		lLayout.addMenuEntry(lRestartEntry);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
-//		lLayout.addMenuEntry(lOptionsEntry);
-//		lLayout.addMenuEntry(MenuEntry.menuSeparator());
+		lLayout.addMenuEntry(lOptionsEntry);
+		lLayout.addMenuEntry(MenuEntry.menuSeparator());
 		lLayout.addMenuEntry(lExitToMenuEntry);
 
 		mLayouts.add(lLayout);
@@ -95,12 +97,17 @@ public class PauseScreen extends MenuScreen {
 			break;
 
 		case SCREEN_BUTTON_RESTART:
-			final var lGameScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
-			screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lGameScreen));
+			if (mLevelResetter != null) {
+				mLevelResetter.resetLevel();
+				exitScreen();
+			} else {
+				final var lNewGameScreen = new GameScreen(screenManager, mSceneHeader, mGameOptions);
+				screenManager.createLoadingScreen(new LoadingScreen(screenManager, true, true, lNewGameScreen));
+			}
 			break;
 
 		case SCREEN_BUTTON_EXIT:
-			screenManager.createLoadingScreen(new LoadingScreen(screenManager, false, false, new MainMenuBackground(screenManager), new CreditsScreen(screenManager), new MainMenu(screenManager)));
+			screenManager.createLoadingScreen(new LoadingScreen(screenManager, false, false, new MainMenuBackground(screenManager), new MainMenu(screenManager)));
 			break;
 
 		}
