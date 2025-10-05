@@ -104,7 +104,7 @@ public class GameState {
 	}
 
 	public int getScore() {
-		return 0;
+		return (int)( mCoins * 20 + mEnemiesKilled * 50);
 	}
 
 	public void addCoins(int amt) {

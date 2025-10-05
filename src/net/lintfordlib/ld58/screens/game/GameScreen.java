@@ -79,7 +79,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 	public static class ProjectileDefinition {
 
-		public static final ProjectileDefinition BULLET = new ProjectileDefinition(GameTextureNames.BULLET, 5);
+		public static final ProjectileDefinition BULLET = new ProjectileDefinition(GameTextureNames.BULLET, 10);
 
 		public final int spriteFrameUid;
 		public final float speed;
@@ -338,7 +338,6 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	private float mPlayerYVel;
 	private float mPlayerY;
 	private float mPlayerZ; // (computed) player relative z distance from camera
-	private float mPlayerWorldZOffset = 20;
 
 	private float mPlayerHitCooldown;
 	private float mPlayerHitFlashTimer;
@@ -372,7 +371,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 
 		reset();
-		setupWorld();
+		setupWorld01();
 	}
 
 	// --------------------------------------
@@ -412,7 +411,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 			if (ConstantsGame.START_GAME_IMMEDIATELY) {
 				reset();
-				setupWorld();
+				setupWorld01();
 			} else {
 				screenManager.addScreen(new PauseScreen(screenManager, mSceneHeader, mGameOptions));
 			}
@@ -421,7 +420,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_FIRE)) {
-			addProjectile(mPlayerX, mPlayerAltitude, mPosition + mPlayerZ + mPlayerWorldZOffset + 10, 0, 1, 2000);
+			addProjectile(mPlayerX, mPlayerAltitude, mPosition + mPlayerZ, 0, 1, 2000);
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_JUMP)) {
@@ -437,19 +436,22 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_FORWARD)) {
-			float speed = 100.f;
-			if (core.input().keyboard().isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT))
-				speed += 50;
+			if (mSpeed < 200) {
+				mSpeed = 200;
+			} else {
+				mSpeed *= 1.1f;
 
-			mSpeed = speed;
+				if (mSpeed > 300) {
+					mSpeed = 300;
+				}
+			}
 		}
 
 		if (core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_BACKWARD)) {
-			float speed = -60.f;
-			if (core.input().keyboard().isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT))
-				speed = 0;
+			if (mSpeed > 100) {
+				mSpeed *= 0.99f;
+			}
 
-			mSpeed = speed;
 		}
 
 	}
@@ -483,9 +485,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			}
 		}
 
-		var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
-		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
-		playerSegmentIndex = playerSegment.index;
+		var playerSegment = findSegment(mPosition + mPlayerZ);
+		final var playerPercent = ((mPosition + mPlayerZ) % mSegmentLength) / mSegmentLength;
 
 		// Update parallax layer offsets
 		var speedPercent = MathHelper.clamp(mSpeed / 100.f, 0, 1);
@@ -508,13 +509,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		updatePlayerCollisions(core, playerSegment);
 
 		mPosition += mSpeed * dt;
-		mGameState.playerDistance(mPosition + mPlayerZ + mPlayerWorldZOffset);
+		mGameState.playerDistance(mPosition + mPlayerZ);
 
 		// update the camera stuff
 
 		mCameraTargetZ = 10;
-		final var cameraSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset + mCameraTargetZ);
-		final var cameraPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset + mCameraTargetZ) % mSegmentLength) / mSegmentLength;
+		final var cameraSegment = findSegment(mPosition + mPlayerZ + mCameraTargetZ);
+		final var cameraPercent = ((mPosition + mPlayerZ + mCameraTargetZ) % mSegmentLength) / mSegmentLength;
 		final var cameraTargetH = InterpolationHelper.lerp(cameraSegment.p0.world.y, cameraSegment.p1.world.y, cameraPercent);
 
 		final var maxYawHeight = 50.f;
@@ -522,20 +523,20 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var maxYawAmt = -MathHelper.clamp(-relYawHeight / maxYawHeight, -1.f, 1.f);
 
 		final var cameraBaseHeight = 200;
-		final var cameraPitchExtent = 200;
+		final var cameraPitchExtent = 150;
 		final var maxPitchExtent = .25f;
-		
+
 		mCameraPitch = MathHelper.clamp(maxYawAmt * maxPitchExtent, -2f, 0f);
-		mCameraHeight = MathHelper.clamp(cameraBaseHeight + -(maxYawAmt * cameraPitchExtent), 200f, 700f);
+		mCameraHeight = MathHelper.clamp(cameraBaseHeight + -(maxYawAmt * cameraPitchExtent), cameraBaseHeight, 700f);
 		mCameraOffsetZ = MathHelper.clamp(-maxYawAmt * 20, 0f, 20f);
-		
+
 //		mCameraPitch = 0.f;
 //		mCameraHeight = 200;
 //		mCameraOffsetZ = 0;
 	}
 
 	private float getDayPhase() {
-		final int cycle = 50000; // full day cycle length in ms DEF: 240000
+		final int cycle = 240000;
 		return (mSkyTime % cycle) / (float) cycle; // normalized
 	}
 
@@ -600,7 +601,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 	private void updatePlayerAltitude(LintfordCore core, TrackSegment playerSegment) {
 
-		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
+		final var playerPercent = ((mPosition + mPlayerZ) % mSegmentLength) / mSegmentLength;
 		final var segmentHeight = InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
 
 		// target segHeight + 10 ?
@@ -612,7 +613,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var isFloored = playerSegment.laneFill[mPlayerLane];
 		var G = 9.87f;
 		if (isFloored) {
-			final var desiredAltitude = segmentHeight + 15;
+			final var desiredAltitude = segmentHeight + 5;
 			final var relativeAltitude = desiredAltitude - mPlayerAltitude;
 			mPlayerYAcc += relativeAltitude * k;
 
@@ -646,8 +647,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 	}
 
 	private void updatePlayerJump(LintfordCore core) {
-		final var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
-		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
+		final var playerSegment = findSegment(mPosition + mPlayerZ);
+		final var playerPercent = ((mPosition + mPlayerZ) % mSegmentLength) / mSegmentLength;
 		final var segmentHeight = InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
 
 		final var isFloored = playerSegment.laneFill[mPlayerLane];
@@ -684,7 +685,6 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 				if (propDef.pickup) {
 					mGameState.addCoins(propDef.value);
-					screenManager.toastManager().addMessage(getClass().getSimpleName(), "COIN MAN!", 1500);
 
 					prop.kill();
 					continue;
@@ -894,11 +894,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 		super.draw(core);
 
-		final var debugSegment = getSegment(playerSegmentIndex);
-		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "id: " + playerSegmentIndex, -150, -10, .5f);
-		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "seg.cur: " + debugSegment.curve, -150, 0, .5f);
-		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "p0.cur: " + debugSegment.p0.curvature, -150, 10, .5f);
-		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "p1.cur: " + debugSegment.p1.curvature, -150, 20, .5f);
+		// Debug Drawers
+		final var debugSegment = findSegment(mPosition);
+		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "pos: " + mPosition, -150, -10, .5f);
+		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "id: " + debugSegment.index, -150, 0, .5f);
+//		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "seg.cur: " + debugSegment.curve, -150, 0, .5f);
+//		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "p0.cur: " + debugSegment.p0.curvature, -150, 10, .5f);
+//		Debug.debugManager().drawers().drawTextImmediate(mGameCamera, "p1.cur: " + debugSegment.p1.curvature, -150, 20, .5f);
 
 	}
 
@@ -930,7 +932,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 		textureBatch.begin(mGameCamera);
 		final var srcX = (backgroundCloudsXOffset + backgroundCloudsXOffsetNat) * 320;
-		final var srcY = backgroundCloudsYOffset;
+		final var srcY = 0;
 		final var srcW = 320;
 		final var srcH = 240;
 
@@ -995,8 +997,8 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var baseSegment = findSegment(mPosition);
 		final var basePercent = (mPosition % mSegmentLength) / mSegmentLength;
 
-		final var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
-		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
+		final var playerSegment = findSegment(mPosition + mPlayerZ);
+		final var playerPercent = ((mPosition + mPlayerZ) % mSegmentLength) / mSegmentLength;
 
 		final var playerY = InterpolationHelper.lerp(playerSegment.p0.world.y, playerSegment.p1.world.y, playerPercent);
 
@@ -1051,8 +1053,6 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		mScreenBuffer.writeOnceLock = false;
 	}
 
-	int playerSegmentIndex = 50;
-
 	private void drawSegment(TrackSegment segment, int canvasWidth, int numLanes, boolean drawLanes) {
 		// @formatter:off
 		final var p0 = segment.p0;
@@ -1062,7 +1062,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		final var r1 = p1.screen.z / 30.0f;
 		
 		final var fog_md = mDrawDistance * mSegmentLength / 2;
-		final var fog_d = mPosition + mPlayerZ + mPlayerWorldZOffset + fog_md;
+		final var fog_d = mPosition + mPlayerZ + fog_md;
 
 		// Animated projection
 //		final var srcBuffer = mArrowTexture.ARGBColorData();
@@ -1114,9 +1114,6 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			
 			var segColor = segment.variation == 0 ? 0xffa4bfaf : 0xffa4bfef;
 			
-			if(segment.index == playerSegmentIndex)
-				segColor = ColorHelper.lerpColor(0x22990000, segColor, .5f);
-			
 			mScreenBuffer.drawPolygon(
 					(int)(lx0), (int)p0.screen.y, 
 					(int)(lx0 + blockWidth0), (int)p0.screen.y, 
@@ -1155,13 +1152,17 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 
 	private void drawPlayer(LintfordCore core) {
 
-		final var playerSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
-		final var playerPercent = ((mPosition + mPlayerZ + mPlayerWorldZOffset) % mSegmentLength) / mSegmentLength;
+		final var playerSegment = findSegment(mPosition + mPlayerZ);
+		final var playerPercent = ((mPosition + mPlayerZ) % mSegmentLength) / mSegmentLength;
 
 		final var scale = InterpolationHelper.lerp(playerSegment.p0.screenScale, playerSegment.p1.screenScale, playerPercent);
 		final var segmentCurvature = InterpolationHelper.lerp(playerSegment.p0.curvature, playerSegment.p1.curvature, playerPercent);
 
 		final var playerFrame = mGameSpriteSheet.getSpriteFrame(GameTextureNames.PLAYER_MID);
+
+//		final var baseSegment = findSegment(mPosition + mPlayerZ + mPlayerWorldZOffset);
+//		final var segment = mTrackSegments.get((baseSegment.index + i) % numSegments);
+//		final var screenX = InterpolationHelper.lerp(segment.p0.screen.x, segment.p1.screen.x, projPercent);
 
 		final var playerW = (int) (playerFrame.width() * scale * ConstantsGame.GAME_CANVAS_WIDTH / 2);
 		final var playerH = (int) (playerFrame.height() * scale * ConstantsGame.GAME_CANVAS_HEIGHT / 2);
@@ -1225,15 +1226,15 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 			final var propCount = segment.props.size();
 			for (int j = 0; j < propCount; j++) {
 				final var prop = segment.props.get(j);
-				final var scale = segment.p0.screenScale;
+				final var scale = InterpolationHelper.lerp(segment.p0.screenScale, segment.p1.screenScale, .5f);
 
 				final var propDefinition = prop.definition;
 				final var spriteFrame = mGameSpriteSheet.getSpriteFrame(propDefinition.spriteFrameUid);
 
 				final var destW = spriteFrame.width() * scale * ConstantsGame.GAME_CANVAS_WIDTH / 2;
 				final var destH = spriteFrame.height() * scale * ConstantsGame.GAME_CANVAS_HEIGHT / 2;
-				final var destX = segment.p0.screen.x + ((prop.xOffset) * scale * mRoadWidth * ConstantsGame.GAME_CANVAS_WIDTH / 2) - destW / 2;
-				final var destY = segment.p0.screen.y + 10;
+				final var destX = segment.p0.screen.x + (prop.xOffset * scale * mRoadWidth * ConstantsGame.GAME_CANVAS_WIDTH / 2) - destW / 2;
+				final var destY = segment.p0.screen.y + 15 * scale * ConstantsGame.GAME_CANVAS_HEIGHT;
 
 				{
 					int srcX = (int) spriteFrame.x();
@@ -1287,14 +1288,17 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				final var entity = segment.entities.get(j);
 				final var def = entity.def;
 
-				final var scale = segment.p0.screenScale;
+				final var entityPercent = (entity.zOffset % mSegmentLength) / mSegmentLength;
+				final var scale = InterpolationHelper.lerp(segment.p0.screenScale, segment.p1.screenScale, entityPercent);
+				final var screenX = InterpolationHelper.lerp(segment.p0.screen.x, segment.p1.screen.x, entityPercent);
+				final var screenY = InterpolationHelper.lerp(segment.p0.screen.y, segment.p1.screen.y, entityPercent);
 
 				final var spriteFrame = mGameSpriteSheet.getSpriteFrame(def.spriteFrameUid);
 
 				final var destW = spriteFrame.width() * scale * ConstantsGame.GAME_CANVAS_WIDTH / 2;
 				final var destH = spriteFrame.height() * scale * ConstantsGame.GAME_CANVAS_HEIGHT / 2;
-				final var destX = segment.p0.screen.x + ((entity.xOffset) * scale * mRoadWidth * ConstantsGame.GAME_CANVAS_WIDTH / 2) - destW / 2;
-				final var destY = segment.p0.screen.y + 10;
+				final var destX = screenX + (entity.xOffset * scale * mRoadWidth * ConstantsGame.GAME_CANVAS_WIDTH / 2) - destW / 2;
+				final var destY = screenY + 15 * scale * ConstantsGame.GAME_CANVAS_HEIGHT;
 
 				{
 					int srcX = (int) spriteFrame.x();
@@ -1316,12 +1320,11 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 					final var srcW = (int) shadowFrame.width();
 					final var srcH = (int) shadowFrame.height();
 
-					final var floorHeight = (int) InterpolationHelper.lerp(segment.p0.screen.y, segment.p1.screen.y, .5f);
 					final var shadowScale = 1.f;
 
 					mScreenBuffer.copyPixelsAtlas(texture.ARGBColorData(), // Src pixels
 							srcX, srcY, srcW, srcH, texture.getTextureWidth(), // src rect
-							(int) (destX), floorHeight, (int) (destW * shadowScale), (int) (srcH * .5f), // dest rect
+							(int) (destX), (int) screenY, (int) (destW * shadowScale), (int) (srcH * .5f), // dest rect
 							entityZ, 0xffffffff, false);
 				}
 
@@ -1361,7 +1364,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 				final var destW = spriteFrame.width() * scale * ConstantsGame.GAME_CANVAS_WIDTH / 2;
 				final var destH = spriteFrame.height() * scale * ConstantsGame.GAME_CANVAS_HEIGHT / 2;
 				final var destX = screenX + (projectile.xOffset * scale * mRoadWidth * ConstantsGame.GAME_CANVAS_WIDTH / 2) - destW / 2;
-				final var destY = screenY + 1; // TODO: projectiles should have heights too - but it is a relative to floor height (the player is absolute height though Oo)
+				final var destY = screenY + 30 * scale * ConstantsGame.GAME_CANVAS_HEIGHT / 2;
 
 				int srcX = (int) spriteFrame.x();
 				int srcY = (int) (spriteFrame.y());
@@ -1397,34 +1400,127 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener {
 		backgroundXOffsetNat = 0.f;
 
 		mGameState.reset();
-	}
-
-	private void setupWorld() {
 
 		// cam
 		mCameraHeight = 200;
 		mFoV = 140;
 		mCameraDepth = 1f / (float) Math.tan(mFoV / 2 * Math.PI / 180);
 		mPlayerZ = mCameraHeight * mCameraDepth;
+	}
 
+	private void setupWorld01() {
+		// track
+		TrackSegment.resetIndexCounter();
+		mTrackSegments.clear();
+
+		// @formatter:off
+		final var testHillHeight = 40;
+		final var turnMod = 5.f;
+		
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		testHillHeight);
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		-testHillHeight);
+		addRoad(0, 	20, 	0, 		0 * turnMod, 		0);
+		
+		addRoad(0, 	20, 	0, 		-.3f * turnMod, 	testHillHeight / 2);
+		addRoad(0, 	20, 	10,		-.6f * turnMod, 	testHillHeight / 2);
+		addRoad(0, 	20,   	0, 		1.f * turnMod, 		testHillHeight / 4);
+		addRoad(0, 	20,   	0, 		0f * turnMod, 		-testHillHeight / 4);
+		addRoad(0, 10,  	0, 		-.6f * turnMod, 	testHillHeight);
+		
+		addRoad(0, 30,  	0, 		0f * turnMod, 		0);
+		addRoad(0, 30,  	0, 		0f * turnMod, 		testHillHeight / 2);
+		addRoad(0, 40,  	0, 		0f * turnMod, 		0);
+		// @formatter:on
+
+		addProp(PropDefinition.COIN, 40, 0);
+		addProp(PropDefinition.COIN, 42, 0);
+		addProp(PropDefinition.COIN, 44, 0);
+
+		addProp(PropDefinition.COIN, 40, 3);
+		addProp(PropDefinition.COIN, 42, 3);
+		addProp(PropDefinition.COIN, 44, 3);
+
+		addProp(PropDefinition.COIN, 75, 1);
+		addProp(PropDefinition.COIN, 76, 1);
+		addProp(PropDefinition.COIN, 77, 1);
+		addProp(PropDefinition.COIN, 75, 2);
+		addProp(PropDefinition.COIN, 76, 2);
+		addProp(PropDefinition.COIN, 77, 2);
+
+		addProp(PropDefinition.COIN, 86, 0);
+		addProp(PropDefinition.COIN, 88, 1);
+		addProp(PropDefinition.COIN, 90, 2);
+		addProp(PropDefinition.COIN, 92, 3);
+		addProp(PropDefinition.COIN, 94, 3);
+		addProp(PropDefinition.COIN, 96, 3);
+
+		addProp(PropDefinition.WALL, 98, 2);
+		addProp(PropDefinition.WALL, 98, 3);
+
+		addProp(PropDefinition.WALL, 104, 0);
+		addProp(PropDefinition.WALL, 104, 2);
+
+		for (int i = 145; i < 150; i++) {
+			addProp(PropDefinition.COIN, i, 0);
+			addProp(PropDefinition.COIN, i + 20, 2);
+			addProp(PropDefinition.COIN, i + 40, 3);
+
+			digOutSegments(i + 40, 10, 0);
+		}
+
+		digOutSegments(220, 3, 0);
+		digOutSegments(225, 3, 3);
+		digOutSegments(240, 3, 2);
+		digOutSegments(245, 3, 1);
+		digOutSegments(255, 3, 3);
+		addProp(PropDefinition.WALL, 261, 1);
+		addProp(PropDefinition.WALL, 260, 0);
+		digOutSegments(257, 3, 0);
+
+		addProp(PropDefinition.COIN, 240, 3);
+		addProp(PropDefinition.COIN, 242, 3);
+
+		// to collect 500
+
+		// mPosition = 210 * mSegmentLength;
+
+		// TODO: These little fuckers need to shoot and move
+//		addEntity(EntityDefinition.NORMAL, 220, 2);
+//		addEntity(EntityDefinition.NORMAL, 222, 3);
+//		addEntity(EntityDefinition.NORMAL, 224, 4);
+//		addEntity(EntityDefinition.SHOOTER, 226, 3);
+
+		final var numSegments = mTrackSegments.size();
+		for (int i = 0; i < numSegments; i++) {
+			mTrackSegments.get(i).variation = (i % 2);
+		}
+
+		mTrackLength = mTrackSegments.size() * mSegmentLength;
+		mGameState.startGame(mTrackLength);
+
+	}
+
+	private void setupWorld_bak() {
 		// track
 		TrackSegment.resetIndexCounter();
 		mTrackSegments.clear();
 
 		final var testHillHeight = 120;
 		final var turnMod = 4.f;
-		addRoad(0, 4, 0, 0*turnMod, 0);
-		addRoad(10, 30, 10, 0*turnMod, testHillHeight * 1.4f);
-		addRoad(0, 30, 0, .5f*turnMod, -testHillHeight / 4);
-		addRoad(0, 20, 0, 0f*turnMod, -testHillHeight / 4);
-		addRoad(10, 30, 10, -.6f*turnMod, testHillHeight);
-		addRoad(10, 30, 10, .8f*turnMod, -testHillHeight);
-		addRoad(10, 30, 10, -.3f*turnMod, testHillHeight);
-		addRoad(30, 100, 0, -0.1f*turnMod, -testHillHeight);
-		addRoad(30, 75, 0, .3f*turnMod, -testHillHeight / 2);
-		addRoad(60, 50, 20, .3f*turnMod, 0);
-		addRoad(0, 75, 0, .4f*turnMod, testHillHeight * 2);
-		addRoad(0, 75, 0, 0*turnMod, testHillHeight);
+		addRoad(0, 4, 0, 0 * turnMod, 0);
+		addRoad(10, 30, 10, 0 * turnMod, testHillHeight * 1.4f);
+		addRoad(0, 30, 0, .5f * turnMod, -testHillHeight / 4);
+		addRoad(0, 20, 0, 0f * turnMod, -testHillHeight / 4);
+		addRoad(10, 30, 10, -.6f * turnMod, testHillHeight);
+		addRoad(10, 30, 10, .8f * turnMod, -testHillHeight);
+		addRoad(10, 30, 10, -.3f * turnMod, testHillHeight);
+		addRoad(30, 100, 0, -0.1f * turnMod, -testHillHeight);
+		addRoad(30, 75, 0, .3f * turnMod, -testHillHeight / 2);
+		addRoad(60, 50, 20, .3f * turnMod, 0);
+		addRoad(0, 75, 0, .4f * turnMod, testHillHeight * 2);
+		addRoad(0, 75, 0, 0 * turnMod, testHillHeight);
 
 //		final var testHillHeight = 20;
 //		addRoad(0, 20, 0, 0, 0);

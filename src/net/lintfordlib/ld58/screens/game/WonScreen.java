@@ -1,11 +1,8 @@
 package net.lintfordlib.ld58.screens.game;
 
-import net.lintfordlib.assets.ResourceManager;
 import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.ColorConstants;
-import net.lintfordlib.core.graphics.sprites.spritesheet.SpriteSheetDefinition;
 import net.lintfordlib.data.scene.SceneHeader;
-import net.lintfordlib.ld58.ConstantsGame;
 import net.lintfordlib.ld58.data.GameOptions;
 import net.lintfordlib.ld58.screens.MainMenu;
 import net.lintfordlib.ld58.screens.menu.CreditsScreen;
@@ -22,6 +19,8 @@ public class WonScreen extends MenuScreen {
 	// Constants
 	// --------------------------------------
 
+	private static final String[] WIN_QUOTES = new String[] { "YOU LOVE TO SEE IT!", "YOU CORKER!", "CRACKING!", "GET IN!", "YOU BEAUT!" };
+
 	private static final int SCREEN_BUTTON_NEXT = 10;
 	private static final int SCREEN_BUTTON_RESTART = 12;
 	private static final int SCREEN_BUTTON_EXIT = 13;
@@ -32,7 +31,6 @@ public class WonScreen extends MenuScreen {
 
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
-	private SpriteSheetDefinition mGameSpritesheetDef;
 
 	// --------------------------------------
 	// Constructor
@@ -47,8 +45,6 @@ public class WonScreen extends MenuScreen {
 		final var layout = new ListLayout(this);
 		layout.layoutFillType(FILLTYPE.TAKE_WHATS_NEEDED);
 		layout.setDrawBackground(false, ColorConstants.WHITE());
-		layout.showTitle(true);
-		layout.title("You love to see it!");
 
 		// TODO: Next level
 		final var nextButton = new MenuEntry(screenManager, this, "Next");
@@ -86,36 +82,17 @@ public class WonScreen extends MenuScreen {
 	// --------------------------------------
 
 	@Override
-	public void loadResources(ResourceManager resourceManager) {
-		super.loadResources(resourceManager);
-
-		mGameSpritesheetDef = resourceManager.spriteSheetManager().getSpriteSheet("SPRITESHEET_GAME", ConstantsGame.GAME_RESOURCE_GROUP_ID);
-	}
-
-	@Override
-	public void unloadResources() {
-		super.unloadResources();
-
-		mGameSpritesheetDef = null;
-	}
-
-	@Override
 	public void draw(LintfordCore core) {
 		super.draw(core);
 
-		if (mGameSpritesheetDef == null)
-			return;
+		final var fontUnit = mRendererManager.sharedResources().uiHeaderFont();
+		fontUnit.begin(core.gameCamera());
+		fontUnit.setTextColorWhite();
+		final var quote = WIN_QUOTES[0];
+		final var quoteWidth = fontUnit.getStringWidth(quote);
+		fontUnit.drawText(quote, 0 - quoteWidth / 2, -70, 1.f, 1.f);
+		fontUnit.end();
 
-		final var lSpriteFrame = mGameSpritesheetDef.getSpriteFrame("WONTEXT");
-
-		if (lSpriteFrame != null) {
-			final var lTextureBatch = mRendererManager.sharedResources().uiSpriteBatch();
-			lTextureBatch.setColorWhite();
-
-			lTextureBatch.begin(core.gameCamera());
-			lTextureBatch.draw(mGameSpritesheetDef, lSpriteFrame, -lSpriteFrame.width() * .5f, core.gameCamera().boundingRectangle().top() + 32, lSpriteFrame.width(), lSpriteFrame.height(), .1f);
-			lTextureBatch.end();
-		}
 	}
 
 	// --------------------------------------

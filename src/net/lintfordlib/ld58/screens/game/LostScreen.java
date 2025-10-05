@@ -1,11 +1,8 @@
 package net.lintfordlib.ld58.screens.game;
 
-import net.lintfordlib.assets.ResourceManager;
 import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.ColorConstants;
-import net.lintfordlib.core.graphics.sprites.spritesheet.SpriteSheetDefinition;
 import net.lintfordlib.data.scene.SceneHeader;
-import net.lintfordlib.ld58.ConstantsGame;
 import net.lintfordlib.ld58.data.GameOptions;
 import net.lintfordlib.ld58.screens.MainMenu;
 import net.lintfordlib.ld58.screens.menu.CreditsScreen;
@@ -23,6 +20,8 @@ public class LostScreen extends MenuScreen {
 	// Constants
 	// --------------------------------------
 
+	private static final String[] LOST_QUOTES = new String[] { "NEVER MIND!" };
+
 	private static final int SCREEN_BUTTON_RESTART = 12;
 	private static final int SCREEN_BUTTON_EXIT = 13;
 
@@ -32,7 +31,6 @@ public class LostScreen extends MenuScreen {
 
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
-	private SpriteSheetDefinition mGameSpritesheetDef;
 
 	// --------------------------------------
 	// Constructor
@@ -82,28 +80,16 @@ public class LostScreen extends MenuScreen {
 	// --------------------------------------
 
 	@Override
-	public void loadResources(ResourceManager resourceManager) {
-		super.loadResources(resourceManager);
-
-		mGameSpritesheetDef = resourceManager.spriteSheetManager().getSpriteSheet("SPRITESHEET_GAME", ConstantsGame.GAME_RESOURCE_GROUP_ID);
-	}
-
-	@Override
-	public void unloadResources() {
-		super.unloadResources();
-
-		mGameSpritesheetDef = null;
-	}
-
-	@Override
-	public void handleInput(LintfordCore core) {
-		super.handleInput(core);
-
-	}
-
-	@Override
 	public void draw(LintfordCore core) {
 		super.draw(core);
+
+		final var fontUnit = mRendererManager.sharedResources().uiHeaderFont();
+		fontUnit.begin(core.gameCamera());
+		fontUnit.setTextColorWhite();
+		final var quote = LOST_QUOTES[0];
+		final var quoteWidth = fontUnit.getStringWidth(quote);
+		fontUnit.drawText(quote, 0 - quoteWidth / 2, -70, 1.f, 1.f);
+		fontUnit.end();
 
 	}
 
