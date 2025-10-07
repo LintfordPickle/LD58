@@ -671,15 +671,15 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		if (phase < 0.33f) {
 			// Day → Sunset
 			float t = phase / 0.33f;
-			tint = ColorHelper.lerpColor(dayTint, sunsetTint, t);
+			tint = ColorHelper.lerpColorARGB(dayTint, sunsetTint, t);
 		} else if (phase < 0.66f) {
 			// Sunset → Night
 			float t = (phase - 0.33f) / 0.33f;
-			tint = ColorHelper.lerpColor(sunsetTint, nightTint, t);
+			tint = ColorHelper.lerpColorARGB(sunsetTint, nightTint, t);
 		} else {
 			// Night → Day
 			float t = (phase - 0.66f) / 0.34f;
-			tint = ColorHelper.lerpColor(nightTint, dayTint, t);
+			tint = ColorHelper.lerpColorARGB(nightTint, dayTint, t);
 		}
 
 		return tint;
@@ -1141,18 +1141,18 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		if (phase < 0.33f) {
 			// Day → Sunset
 			float t = phase / 0.33f;
-			topColor = ColorHelper.lerpColor(dayTop, sunsetTop, t);
-			midColor = ColorHelper.lerpColor(dayMid, sunsetMid, t);
+			topColor = ColorHelper.lerpColorARGB(dayTop, sunsetTop, t);
+			midColor = ColorHelper.lerpColorARGB(dayMid, sunsetMid, t);
 		} else if (phase < 0.66f) {
 			// Sunset → Night
 			float t = (phase - 0.33f) / 0.33f;
-			topColor = ColorHelper.lerpColor(sunsetTop, nightTop, t);
-			midColor = ColorHelper.lerpColor(sunsetMid, nightMid, t);
+			topColor = ColorHelper.lerpColorARGB(sunsetTop, nightTop, t);
+			midColor = ColorHelper.lerpColorARGB(sunsetMid, nightMid, t);
 		} else {
 			// Night → Day
 			float t = (phase - 0.66f) / 0.34f;
-			topColor = ColorHelper.lerpColor(nightTop, dayTop, t);
-			midColor = ColorHelper.lerpColor(nightMid, dayMid, t);
+			topColor = ColorHelper.lerpColorARGB(nightTop, dayTop, t);
+			midColor = ColorHelper.lerpColorARGB(nightMid, dayMid, t);
 		}
 
 		// need to force top color to have 0x00 alpha
@@ -1162,7 +1162,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 		for (int y = 0; y < skyHeight; y++) {
 			float t = (float) y / (skyHeight - 1);
-			int color = ColorHelper.lerpColor(topColor, midColor, t);
+			int color = ColorHelper.lerpColorARGB(topColor, midColor, t);
 
 			for (int x = 0; x < ConstantsGame.GAME_CANVAS_WIDTH; x++) {
 				buffer[(ConstantsGame.GAME_CANVAS_HEIGHT - 1 - y) * ConstantsGame.GAME_CANVAS_WIDTH + x] = color;
