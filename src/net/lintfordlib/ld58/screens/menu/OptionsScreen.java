@@ -59,7 +59,7 @@ public class OptionsScreen extends MenuScreen {
 
 		lLayout.addMenuEntry(lVideoEntry);
 		lLayout.addMenuEntry(lAudioSettingsEntry);
-//		lLayout.addMenuEntry(lKeyBindsEntry);
+		lLayout.addMenuEntry(lKeyBindsEntry);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
 		lLayout.addMenuEntry(lBackEntry);
 
