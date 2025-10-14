@@ -23,7 +23,7 @@ import net.lintfordlib.core.maths.Vector3f;
 import net.lintfordlib.data.DataManager;
 import net.lintfordlib.data.scene.SceneHeader;
 import net.lintfordlib.ld58.ConstantsGame;
-import net.lintfordlib.ld58.LD58KeyActions;
+import net.lintfordlib.ld58.LD58InputActionsMap;
 import net.lintfordlib.ld58.controllers.GameStateController;
 import net.lintfordlib.ld58.controllers.SoundFxController;
 import net.lintfordlib.ld58.data.GameEndState;
@@ -34,6 +34,7 @@ import net.lintfordlib.ld58.data.IGameStateListener;
 import net.lintfordlib.ld58.data.IResetLevel;
 import net.lintfordlib.ld58.renderers.HudRenderer;
 import net.lintfordlib.renderers.SimpleRendererManager;
+import net.lintfordlib.renderers.debug.DebugControllerRenderer;
 import net.lintfordlib.screenmanager.ScreenManager;
 import net.lintfordlib.screenmanager.screens.BaseGameScreen;
 
@@ -44,7 +45,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 	public static final float HIT_FLASH_TIME = 50;
 	public static final float HIT_COOLDOWN_TIME = 300;
 
-	public static final float JUMP_COOLDOWN_TIME = 300;
+	public static final float JUMP_COOLDOWN_TIME = 100;
 
 	public static final int NUM_LANES = 4;
 
@@ -331,6 +332,10 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 	private GameStateController mGameStateController;
 	private SoundFxController mSoundFxController;
 
+	// DEBUG
+	private DebugControllerRenderer mDebugControllerRenderer;
+	// DEBUG
+
 	private CharAtlasRenderer mCharAtlasRenderer;
 	private SceneHeader mSceneHeader;
 	private GameOptions mGameOptions;
@@ -483,17 +488,22 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 			return;
 		}
 
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_LEFT)) {
+		// TEST - keep the game paused while testing the controller stuff
+//		if (mGameState.hasGameEnded() || !mGameState.hasGameEnded())
+//			return;
+		// TEST
+
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58InputActionsMap.KEY_BINDING_LEFT)) {
 			mPlayerLane = MathHelper.clampi(--mPlayerLane, 0, NUM_LANES - 1);
 		}
 
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_RIGHT)) {
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58InputActionsMap.KEY_BINDING_RIGHT)) {
 			mPlayerLane = MathHelper.clampi(++mPlayerLane, 0, NUM_LANES - 1);
 		}
 
 		if (!mGameState.hasGameStarted()) {
-			var fireButton = core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_FIRE);
-			var jumpButton = core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_JUMP);
+			var fireButton = core.input().eventActionManager().getCurrentControlActionStateTimed(LD58InputActionsMap.KEY_BINDING_FIRE);
+			var jumpButton = core.input().eventActionManager().getCurrentControlActionStateTimed(LD58InputActionsMap.KEY_BINDING_JUMP);
 
 			var space = core.input().keyboard().isKeyDownTimed(GLFW.GLFW_KEY_SPACE, this);
 
@@ -506,23 +516,16 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 
 		// After this is only once the game has started
 
-		if (core.input().keyboard().isKeyDownTimed(GLFW.GLFW_KEY_LEFT_CONTROL, this)) {
-			mSpeed += 200;
-			if (mSpeed > 600) {
-				mSpeed = 600;
-			}
-		}
-
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_FIRE)) {
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58InputActionsMap.KEY_BINDING_FIRE)) {
 			addProjectile(ProjectileDefinition.P_BULLET, mPlayerX, mPlayerAltitude, mPosition + mPlayerZ, 1);
 		}
 
-		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58KeyActions.KEY_BINDING_JUMP)) {
+		if (core.input().eventActionManager().getCurrentControlActionStateTimed(LD58InputActionsMap.KEY_BINDING_JUMP)) {
 			updatePlayerJump(core);
 		}
 
-		final var forwardPressed = core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_FORWARD);
-		final var backwardPressed = core.input().eventActionManager().getCurrentControlActionState(LD58KeyActions.KEY_BINDING_BACKWARD);
+		final var forwardPressed = core.input().eventActionManager().getCurrentControlActionState(LD58InputActionsMap.KEY_BINDING_FORWARD);
+		final var backwardPressed = core.input().eventActionManager().getCurrentControlActionState(LD58InputActionsMap.KEY_BINDING_BACKWARD);
 
 		if (forwardPressed) {
 			if (mSpeed < mMinLevelSpeed) {
@@ -774,7 +777,7 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 		final var segmentHeight = InterpolationHelper.lerp(playerSegment.p0.screen.y, playerSegment.p1.screen.y, playerPercent);
 
 		final var isFloored = playerSegment.laneFill[mPlayerLane];
-		final var isOnFloor = mPlayerAltitude - segmentHeight - 15 < 10.0f;
+		final var isOnFloor = mPlayerAltitude - segmentHeight - 5 < 0f;
 
 		if (isFloored && isOnFloor) {
 			mPlayerYVel = JUMP_ALT_POWER; // Apply directly to velocity, not acceleration
@@ -1737,11 +1740,13 @@ public class GameScreen extends BaseGameScreen implements IGameStateListener, IR
 	@Override
 	protected void createRenderers(LintfordCore core) {
 		mHudRenderer = new HudRenderer(mRendererManager, ConstantsGame.GAME_RESOURCE_GROUP_ID);
+		mDebugControllerRenderer = new DebugControllerRenderer(mRendererManager, ConstantsGame.GAME_RESOURCE_GROUP_ID);
 	}
 
 	@Override
 	protected void createRendererStructure(LintfordCore core) {
-		mRendererManager.addRenderer(mHudRenderer);
+
+		// Ignored: Not needed with 'SimpleRendererManager'.
 
 	}
 

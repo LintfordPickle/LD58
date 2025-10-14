@@ -10,6 +10,7 @@ import net.lintfordlib.screenmanager.ScreenManagerConstants.LAYOUT_ALIGNMENT;
 import net.lintfordlib.screenmanager.ScreenManagerConstants.LAYOUT_WIDTH;
 import net.lintfordlib.screenmanager.layouts.ListLayout;
 import net.lintfordlib.screenmanager.screens.AudioOptionsScreen;
+import net.lintfordlib.screenmanager.screens.ControllerOptionsScreen;
 import net.lintfordlib.screenmanager.screens.KeyBindOptionsScreen;
 import net.lintfordlib.screenmanager.screens.VideoOptionsScreen;
 
@@ -22,6 +23,7 @@ public class OptionsScreen extends MenuScreen {
 	private static final int BUTTON_AUDIO = 10;
 	private static final int BUTTON_VIDEO = 11;
 	private static final int BUTTON_KEY_BINDS = 12;
+	private static final int BUTTON_CONTROLLER = 13;
 	private static final int BUTTON_BACK = 30;
 
 	// ---------------------------------------------
@@ -41,27 +43,32 @@ public class OptionsScreen extends MenuScreen {
 		lLayout.cropPaddingTop(10.f);
 		lLayout.cropPaddingBottom(10.f);
 
-		final var lKeyBindsEntry = new MenuEntry(screenManager, this, "Key Binds");
-		lKeyBindsEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
-		lKeyBindsEntry.registerClickListener(this, BUTTON_KEY_BINDS);
+		final var keyBindsEntry = new MenuEntry(screenManager, this, "Key Binds");
+		keyBindsEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		keyBindsEntry.registerClickListener(this, BUTTON_KEY_BINDS);
 
-		final var lVideoEntry = new MenuEntry(screenManager, this, "Video");
-		lVideoEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
-		lVideoEntry.registerClickListener(this, BUTTON_VIDEO);
+		final var controllerSetup = new MenuEntry(screenManager, this, "Controller Setup");
+		controllerSetup.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		controllerSetup.registerClickListener(this, BUTTON_CONTROLLER);
 
-		final var lAudioSettingsEntry = new MenuEntry(screenManager, this, "Audio");
-		lAudioSettingsEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
-		lAudioSettingsEntry.registerClickListener(this, BUTTON_AUDIO);
+		final var videoEntry = new MenuEntry(screenManager, this, "Video");
+		videoEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		videoEntry.registerClickListener(this, BUTTON_VIDEO);
 
-		final var lBackEntry = new MenuEntry(screenManager, this, "Back");
-		lBackEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
-		lBackEntry.registerClickListener(this, BUTTON_BACK);
+		final var audioSettingsEntry = new MenuEntry(screenManager, this, "Audio");
+		audioSettingsEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		audioSettingsEntry.registerClickListener(this, BUTTON_AUDIO);
 
-		lLayout.addMenuEntry(lVideoEntry);
-		lLayout.addMenuEntry(lAudioSettingsEntry);
-		lLayout.addMenuEntry(lKeyBindsEntry);
+		final var backEntry = new MenuEntry(screenManager, this, "Back");
+		backEntry.horizontalFillType(FILLTYPE.FILL_CONTAINER);
+		backEntry.registerClickListener(this, BUTTON_BACK);
+
+		lLayout.addMenuEntry(videoEntry);
+		lLayout.addMenuEntry(audioSettingsEntry);
+		lLayout.addMenuEntry(keyBindsEntry);
+		lLayout.addMenuEntry(controllerSetup);
 		lLayout.addMenuEntry(MenuEntry.menuSeparator());
-		lLayout.addMenuEntry(lBackEntry);
+		lLayout.addMenuEntry(backEntry);
 
 		mScreenPaddingTop = 30.f;
 		mLayoutPaddingHorizontal = 50.f;
@@ -104,6 +111,10 @@ public class OptionsScreen extends MenuScreen {
 
 		case BUTTON_KEY_BINDS:
 			screenManager.addScreen(new KeyBindOptionsScreen(screenManager));
+			break;
+
+		case BUTTON_CONTROLLER:
+			screenManager.addScreen(new ControllerOptionsScreen(screenManager));
 			break;
 
 		case BUTTON_BACK:

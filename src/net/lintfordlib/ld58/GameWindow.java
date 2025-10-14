@@ -1,12 +1,20 @@
 package net.lintfordlib.ld58;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+
+import org.lwjgl.glfw.GLFW;
+
 import net.lintfordlib.GameInfo;
 import net.lintfordlib.GameVersion;
 import net.lintfordlib.assets.ResourceLoader;
 import net.lintfordlib.controllers.music.MusicController;
 import net.lintfordlib.core.LintfordCore;
 import net.lintfordlib.core.graphics.fonts.BitmapFontManager;
-import net.lintfordlib.core.input.KeyEventActionManager;
+import net.lintfordlib.core.input.GameInputActionManager;
 import net.lintfordlib.core.rendering.SharedResources;
 import net.lintfordlib.ld58.controllers.SoundFxController;
 import net.lintfordlib.ld58.data.GameOptions;
@@ -43,7 +51,7 @@ public class GameWindow extends LintfordCore {
 
 	protected int mEntityGroupID;
 
-	protected LD58KeyActions mGameKeyActions;
+	protected LD58InputActionsMap mGameKeyActions;
 	protected ResourceLoader mGameResourceLoader;
 	protected ScreenManager mScreenManager;
 
@@ -76,8 +84,41 @@ public class GameWindow extends LintfordCore {
 	// ---------------------------------------------
 
 	@Override
-	protected void onInitializeInputActions(KeyEventActionManager eventActionManager) {
-		eventActionManager.addGameKeyActions(new LD58KeyActions());
+	protected void onInitializeInputActions(GameInputActionManager eventActionManager) {
+
+		// TODO: Do the shit withe the controller mapping file, but do it somewhere else
+		RandomAccessFile aFile = null;
+		try {
+			aFile = new RandomAccessFile("res/input/gamecontrollerdb.txt", "r");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		FileChannel inChannel = aFile.getChannel();
+		long fileSize = 0;
+		try {
+			fileSize = inChannel.size();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		ByteBuffer buffer = ByteBuffer.allocateDirect((int) fileSize + 1);
+		try {
+			inChannel.read(buffer);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		buffer.rewind();
+
+		if (!GLFW.glfwUpdateGamepadMappings(buffer)) {
+			System.out.println("CRITICAL: Error while loading SDL Gamepad mappings!");
+			System.exit(0);
+		}
+
+		eventActionManager.addGameKeyActions(new LD58InputActionsMap());
 
 		super.onInitializeInputActions(eventActionManager);
 	}
